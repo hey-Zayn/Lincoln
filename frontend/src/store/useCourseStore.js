@@ -1,0 +1,114 @@
+import axiosInstance from "../axios/axiosInstance";
+import { toast } from "sonner";
+import { create } from "zustand";
+
+export const useCourseStore = create((set) => ({
+    courses: [],
+    userCourses: [],
+    currentCourse: null,
+    isLoading: false,
+    isCreating: false,
+    isUpdating: false,
+    isDeleting: false,
+    isEnrolling: false,
+
+    getAllCourses: async () => {
+        set({ isLoading: true });
+        try {
+            const res = await axiosInstance.get("/courses/all");
+            set({ courses: res.data.courses });
+        } catch (error) {
+            console.error("Error in getAllCourses:", error);
+            toast.error(error.response?.data?.message || "Failed to fetch courses");
+        } finally {
+            set({ isLoading: false });
+        }
+    },
+
+    getAllCoursesByUser: async () => {
+        set({ isLoading: true });
+        try {
+            const res = await axiosInstance.get("/courses/users-all-courses");
+            set({ userCourses: res.data.courses });
+        } catch (error) {
+            console.error("Error in getAllCoursesByUser:", error);
+        } finally {
+            set({ isLoading: false });
+        }
+    },
+
+    getCourseById: async (id) => {
+        set({ isLoading: true });
+        try {
+            const res = await axiosInstance.get(`/courses/${id}`);
+            set({ currentCourse: res.data.course });
+            return res.data.course;
+        } catch (error) {
+            console.error("Error in getCourseById:", error);
+            toast.error("Course not found");
+        } finally {
+            set({ isLoading: false });
+        }
+    },
+
+    createCourse: async (data) => {
+        set({ isCreating: true });
+        try {
+            const res = await axiosInstance.post("/courses/create", data);
+            set((state) => ({ courses: [...state.courses, res.data.course] }));
+            toast.success("Course created successfully!");
+            return res.data.course;
+        } catch (error) {
+            toast.error(error.response?.data?.message || "Failed to create course");
+            console.error(error);
+        } finally {
+            set({ isCreating: false });
+        }
+    },
+
+    updateCourse: async (id, data) => {
+        set({ isUpdating: true });
+        try {
+            const res = await axiosInstance.put(`/courses/update/${id}`, data);
+            set((state) => ({
+                courses: state.courses.map((c) => (c._id === id ? res.data.course : c)),
+                currentCourse: res.data.course,
+            }));
+            toast.success("Course updated successfully!");
+            return res.data.course;
+        } catch (error) {
+            toast.error(error.response?.data?.message || "Failed to update course");
+        } finally {
+            set({ isUpdating: false });
+        }
+    },
+
+    deleteCourse: async (id) => {
+        set({ isDeleting: true });
+        try {
+            await axiosInstance.delete(`/courses/delete/${id}`);
+            set((state) => ({
+                courses: state.courses.filter((c) => c._id !== id),
+            }));
+            toast.success("Course deleted successfully!");
+        } catch (error) {
+            toast.error(error.response?.data?.message || "Failed to delete course");
+        } finally {
+            set({ isDeleting: false });
+        }
+    },
+
+    enrollInCourse: async (id) => {
+        set({ isEnrolling: true });
+        try {
+            const res = await axiosInstance.post(`/courses/enroll/${id}`);
+            toast.success(res.data.message || "Enrolled successfully!");
+            return true;
+        } catch (error) {
+            toast.error(error.response?.data?.message || "Enrolment failed");
+            return false;
+        } finally {
+            set({ isEnrolling: false });
+        }
+    },
+}));

@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const { body } = require("express-validator");
-const { registerUser, loginUser, logoutUser, getUser, verifyUser, forgotPassword, resetPassword, updatePassword } = require("../controllers/User.controller");
+const { registerUser, loginUser, logoutUser, getUser, verifyUser, forgotPassword, resetPassword, updatePassword, updateProfileUser } = require("../controllers/User.controller");
 const protectedRoute = require("../middlewares/Auth.Middleware");
 
 router.post("/register", [
@@ -44,6 +44,20 @@ router.put("/update-password", protectedRoute, [
 ], updatePassword);
 
 router.get("/me", protectedRoute, getUser);
+
+router.put('/profile', protectedRoute, [
+    body("firstName").optional().trim().notEmpty().withMessage("First name cannot be empty"),
+    body("lastName").optional().trim().notEmpty().withMessage("Last name cannot be empty"),
+    body("userName").optional().trim().notEmpty().withMessage("Username cannot be empty"),
+    body("phone").optional().trim().notEmpty().withMessage("Phone number cannot be empty")
+        .isLength({ min: 10, max: 15 }).withMessage("Phone number must be between 10 and 15 digits"),
+    body("address").optional().trim().notEmpty().withMessage("Address cannot be empty"),
+    body("bio").optional().trim(),
+    body("profilePicture").optional().trim()
+], updateProfileUser);
+
+
+
 
 module.exports = router;
 

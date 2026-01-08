@@ -3,6 +3,7 @@ const User = require("../models/User.Model");
 const jwt = require("jsonwebtoken");
 const genrateToken = require("../utils/genrateToken");
 const { sendVerificationEmail, sendResetPasswordEmail } = require("../utils/email.util");
+const cloudinary = require("../config/Database/cloudinary/cloudinary");
 
 
 
@@ -348,6 +349,53 @@ const updatePassword = async (req, res) => {
     }
 };
 
+const updateProfileUser = async (req, res) => {
+    try {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({
+                success: false,
+                errors: errors.array()
+            });
+        }
+
+        const { firstName, lastName, userName, phone, address, bio, profilePicture } = req.body;
+        const user = await User.findById(req.user._id);
+
+        if (profilePicture) {
+            // Check if profilePicture is a base64 string or a URL
+            // If it's a new upload (base64/data URI), upload it to cloudinary
+            if (profilePicture.startsWith("data:image")) {
+                const uploadResponse = await cloudinary.uploader.upload(profilePicture);
+                user.profilePicture = uploadResponse.secure_url;
+            } else {
+                user.profilePicture = profilePicture;
+            }
+        }
+
+        user.firstName = firstName || user.firstName;
+        user.lastName = lastName || user.lastName;
+        user.userName = userName || user.userName;
+        user.phone = phone || user.phone;
+        user.address = address || user.address;
+        user.bio = bio || user.bio;
+        await user.save();
+
+        res.status(200).json({
+            success: true,
+            message: "Profile updated successfully",
+            user
+        });
+    } catch (err) {
+        console.log(err);
+        res.status(500).json({
+            success: false,
+            message: "Something went wrong",
+            error: err.message
+        });
+    }
+};
+
 module.exports = {
     registerUser,
     loginUser,
@@ -356,5 +404,6 @@ module.exports = {
     verifyUser,
     forgotPassword,
     resetPassword,
-    updatePassword
+    updatePassword,
+    updateProfileUser
 }

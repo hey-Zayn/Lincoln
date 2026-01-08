@@ -52,7 +52,7 @@ const Login = () => {
                     
                     <CardHeader className="space-y-1 pb-8">
                         <div className="flex justify-center mb-6">
-                            <div className="size-14 bg-red-600 rounded-2xl flex items-center justify-center shadow-lg shadow-red-600/20 transform -rotate-6 hover:rotate-0 transition-transform duration-300">
+                            <div className="size-14 bg-red-600 rounded-md flex items-center justify-center shadow-lg shadow-red-600/20 transform -rotate-6 hover:rotate-0 transition-transform duration-300">
                                 <ShieldCheck className="size-8 text-white" />
                             </div>
                         </div>

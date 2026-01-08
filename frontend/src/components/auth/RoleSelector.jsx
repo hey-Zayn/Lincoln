@@ -25,9 +25,9 @@ const roles = [
     title: 'Parent',
     description: 'Monitor child performance',
     icon: Users,
-    color: 'text-orange-500',
-    bg: 'bg-orange-500/10',
-    border: 'border-orange-500/20'
+    color: 'text-red-500',
+    bg: 'bg-red-500/10',
+    border: 'border-red-500/20'
   },
   {
     id: 'admin',
@@ -52,13 +52,13 @@ const RoleSelector = ({ selectedRole, onChange }) => {
             key={role.id}
             type="button"
             onClick={() => onChange(role.id)}
-            className={`flex items-start gap-4 p-4 rounded-xl border-2 text-left transition-all duration-300 ${
+            className={`flex items-start gap-4 p-4 rounded-md border-2 text-left transition-all duration-300 ${
               isSelected 
                 ? 'border-red-600 bg-red-600/5 ring-4 ring-red-600/10 shadow-lg' 
                 : 'border-border bg-card/50 hover:border-red-600/30 hover:bg-red-600/5'
             }`}
           >
-            <div className={`p-2 rounded-lg ${role.bg}`}>
+            <div className={`p-2 rounded-md ${role.bg}`}>
               <Icon className={`size-6 ${role.color}`} />
             </div>
             <div>
@@ -66,8 +66,8 @@ const RoleSelector = ({ selectedRole, onChange }) => {
               <p className="text-xs text-slate-400 mt-1">{role.description}</p>
             </div>
             {isSelected && (
-              <div className="ml-auto size-5 bg-red-600 rounded-full flex items-center justify-center">
-                <div className="size-2 bg-white rounded-full" />
+              <div className="ml-auto size-5 bg-red-600 rounded-md flex items-center justify-center">
+                <div className="size-2 bg-white rounded-md" />
               </div>
             )}
           </button>
