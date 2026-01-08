@@ -20,7 +20,7 @@ import {
     CheckCircle2,
     AlertCircle
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion as Motion, AnimatePresence } from 'framer-motion';
 
 const VerifyEmail = () => {
     const [code, setCode] = useState("");
@@ -62,19 +62,19 @@ const VerifyEmail = () => {
                     
                     <CardHeader className="space-y-1 pb-8 text-center">
                         <div className="flex justify-center mb-6">
-                            <motion.div 
+                            <Motion.div 
                                 initial={{ scale: 0.8, opacity: 0 }}
                                 animate={{ scale: 1, opacity: 1 }}
-                                className="size-16 bg-red-600 rounded-2xl flex items-center justify-center shadow-lg shadow-red-600/20"
+                                className="size-16 bg-red-600 rounded-md flex items-center justify-center shadow-lg shadow-red-600/20"
                             >
                                 <ShieldCheck className="size-8 text-white" />
-                            </motion.div>
+                            </Motion.div>
                         </div>
                         <CardTitle className="text-3xl font-black dark:text-white tracking-tight">Verify Your Account</CardTitle>
                         <CardDescription className="text-slate-500 dark:text-slate-400">
                             We've sent a 6-digit verification code to
                         </CardDescription>
-                        <div className="flex items-center justify-center gap-2 mt-2 px-3 py-1.5 bg-red-600/5 rounded-full border border-red-600/10 w-fit mx-auto">
+                        <div className="flex items-center justify-center gap-2 mt-2 px-3 py-1.5 bg-red-600/5 rounded-md border border-red-600/10 w-fit mx-auto">
                             <Mail className="size-3.5 text-red-600" />
                             <span className="text-sm font-bold text-red-600">{email}</span>
                         </div>
@@ -104,7 +104,7 @@ const VerifyEmail = () => {
                                 </p>
                             </div>
 
-                            <div className="p-4 bg-amber-500/5 rounded-xl border border-amber-500/10 flex gap-3">
+                            <div className="p-4 bg-amber-500/5 rounded-md border border-amber-500/10 flex gap-3">
                                 <AlertCircle className="size-5 text-amber-500 shrink-0 mt-0.5" />
                                 <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
                                     Access is restricted until your account is verified. This ensures the security of our institutional records.

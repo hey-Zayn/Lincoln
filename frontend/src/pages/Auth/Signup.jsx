@@ -26,7 +26,7 @@ import {
     AtSign,
     CheckCircle2
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion as Motion, AnimatePresence } from 'framer-motion';
 import RoleSelector from '../../components/auth/RoleSelector';
 
 const Signup = () => {
@@ -79,7 +79,7 @@ const Signup = () => {
 
                 <Card className="shadow-2xl border-border/50 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl relative z-10 overflow-hidden">
                     <div className="h-2 w-full bg-slate-100 dark:bg-zinc-800">
-                        <motion.div 
+                        <Motion.div 
                             className="h-full bg-red-600" 
                             initial={{ width: "33%" }}
                             animate={{ width: `${(step / 3) * 100}%` }}
@@ -89,14 +89,14 @@ const Signup = () => {
 
                     <CardHeader className="space-y-1 pb-8">
                         <div className="flex items-center justify-between mb-4">
-                            <div className="size-12 bg-red-600 rounded-xl flex items-center justify-center shadow-lg shadow-red-600/20">
+                            <div className="size-12 bg-red-600 rounded-md flex items-center justify-center shadow-lg shadow-red-600/20">
                                 <UserPlus className="size-6 text-white" />
                             </div>
                             <div className="flex gap-2">
                                 {[1, 2, 3].map((s) => (
                                     <div 
                                         key={s} 
-                                        className={`size-2 rounded-full transition-colors duration-300 ${
+                                        className={`size-2 rounded-md transition-colors duration-300 ${
                                             s === step ? 'bg-red-600 w-6' : 'bg-slate-300 dark:bg-zinc-700'
                                         }`} 
                                     />
@@ -119,7 +119,7 @@ const Signup = () => {
                         <CardContent className="min-h-[350px]">
                             <AnimatePresence mode="wait">
                                 {step === 1 && (
-                                    <motion.div
+                                    <Motion.div
                                         key="step1"
                                         variants={stepVariants}
                                         initial="hidden"
@@ -178,11 +178,11 @@ const Signup = () => {
                                                 </button>
                                             </div>
                                         </div>
-                                    </motion.div>
+                                    </Motion.div>
                                 )}
 
                                 {step === 2 && (
-                                    <motion.div
+                                    <Motion.div
                                         key="step2"
                                         variants={stepVariants}
                                         initial="hidden"
@@ -228,17 +228,17 @@ const Signup = () => {
                                                 />
                                             </div>
                                         </div>
-                                        <div className="p-4 bg-red-600/5 rounded-xl border border-red-600/10 flex gap-3">
+                                        <div className="p-4 bg-red-600/5 rounded-md border border-red-600/10 flex gap-3">
                                             <CheckCircle2 className="size-5 text-red-600 shrink-0 mt-0.5" />
                                             <p className="text-xs text-slate-600 dark:text-slate-400">
                                                 Your data is protected under our institutional privacy policy and will only be used for academic purposes.
                                             </p>
                                         </div>
-                                    </motion.div>
+                                    </Motion.div>
                                 )}
 
                                 {step === 3 && (
-                                    <motion.div
+                                    <Motion.div
                                         key="step3"
                                         variants={stepVariants}
                                         initial="hidden"
@@ -267,7 +267,7 @@ const Signup = () => {
                                                 />
                                             </div>
                                         </div>
-                                    </motion.div>
+                                    </Motion.div>
                                 )}
                             </AnimatePresence>
                         </CardContent>

@@ -106,4 +106,33 @@ export const useAuthStore = create((set) => ({
         }
     },
 
+    updateProfile: async (data) => {
+        set({ isUpdatingProfile: true });
+        try {
+            const res = await axiosInstance.put("/users/profile", data);
+            set({ authUser: res.data.user }); // Actually, the backend should return the updated user
+            toast.success(res.data.message || "Profile updated successfully!");
+            return res.data;
+        } catch (error) {
+            toast.error(error.response?.data?.message || "Failed to update profile");
+            console.error(error);
+        } finally {
+            set({ isUpdatingProfile: false });
+        }
+    },
+
+    updatePassword: async (data) => {
+        set({ isUpdatingPassword: true });
+        try {
+            const res = await axiosInstance.put("/users/update-password", data);
+            toast.success(res.data.message || "Password updated successfully!");
+            return res.data;
+        } catch (error) {
+            toast.error(error.response?.data?.message || "Failed to update password");
+            console.error(error);
+        } finally {
+            set({ isUpdatingPassword: false });
+        }
+    },
+
 }));
