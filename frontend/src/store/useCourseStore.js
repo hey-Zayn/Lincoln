@@ -74,12 +74,78 @@ export const useCourseStore = create((set) => ({
                 courses: state.courses.map((c) => (c._id === id ? res.data.course : c)),
                 currentCourse: res.data.course,
             }));
-            toast.success("Course updated successfully!");
             return res.data.course;
         } catch (error) {
             toast.error(error.response?.data?.message || "Failed to update course");
         } finally {
             set({ isUpdating: false });
+        }
+    },
+
+    togglePublish: async (id, isPublished) => {
+        try {
+            const res = await axiosInstance.put(`/courses/publish/${id}`, { isPublished });
+            set((state) => ({
+                currentCourse: { ...state.currentCourse, isPublished: res.data.isPublished }
+            }));
+            toast.success(res.data.message);
+            return true;
+        } catch (error) {
+            toast.error(error.response?.data?.message || "Failed to update status");
+            return false;
+        }
+    },
+
+    addSection: async (id, sectionTitle) => {
+        try {
+            const res = await axiosInstance.post(`/courses/${id}/section/create`, { sectionTitle });
+            set((state) => ({
+                currentCourse: { ...state.currentCourse, sections: res.data.sections }
+            }));
+            toast.success("Section added");
+            return true;
+        } catch (error) {
+            toast.error(error.response?.data?.message || "Failed to add section");
+            return false;
+        }
+    },
+
+    updateSection: async (id, sectionId, sectionTitle) => {
+        try {
+            const res = await axiosInstance.put(`/courses/${id}/section/update/${sectionId}`, { sectionTitle });
+            set((state) => ({
+                currentCourse: { ...state.currentCourse, sections: res.data.sections }
+            }));
+            toast.success("Section updated");
+            return true;
+        } catch (error) {
+            toast.error(error.response?.data?.message || "Failed to update section");
+            return false;
+        }
+    },
+
+    deleteSection: async (id, sectionId) => {
+        try {
+            const res = await axiosInstance.delete(`/courses/${id}/section/delete/${sectionId}`);
+            set((state) => ({
+                currentCourse: { ...state.currentCourse, sections: res.data.sections }
+            }));
+            toast.success("Section removed");
+            return true;
+        } catch (error) {
+            toast.error(error.response?.data?.message || "Failed to delete section");
+            return false;
+        }
+    },
+
+    createLecture: async (courseId, data) => {
+        try {
+            const res = await axiosInstance.post(`/courses/${courseId}/lecture/create`, data);
+            toast.success("Lecture created");
+            return res.data.lecture;
+        } catch (error) {
+            toast.error(error.response?.data?.message || "Failed to create lecture");
+            return null;
         }
     },
 

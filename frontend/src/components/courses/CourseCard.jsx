@@ -62,11 +62,13 @@ const CourseCard = ({ course, index }) => {
           <div className="flex items-center justify-between pb-6 border-b border-slate-100 dark:border-zinc-800/50">
             <div className="flex items-center gap-2.5">
               <div className="size-9 rounded-md bg-slate-100 dark:bg-zinc-800 flex items-center justify-center text-slate-500 dark:text-zinc-400 group-hover:bg-red-600 group-hover:text-white transition-colors duration-300 shadow-inner">
-                <User className="size-4" />
+                {
+                  course?.teacher.profilePicture ? <img src={course?.teacher.profilePicture}/>: <User className="size-4" />
+                }
               </div>
               <div className="flex flex-col">
                 <span className="text-[10px] text-slate-400 dark:text-zinc-500 uppercase font-black tracking-widest leading-none mb-1">Mentor</span>
-                <span className="text-xs text-slate-900 dark:text-zinc-200 font-bold">Industry Expert</span>
+                <span className="text-xs text-slate-900 dark:text-zinc-200 font-bold">{course.teacher.firstName}</span>
               </div>
             </div>
             

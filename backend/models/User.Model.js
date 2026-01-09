@@ -20,11 +20,18 @@ const userSchema = new mongoose.Schema({
     },
     phone: {
         type: String,
-        required: true
+        required: true,
+        default: ""
     },
     address: {
         type: String,
-        required: true
+        required: true,
+        default: ""
+    },
+    nationalID: {
+        type: String,
+        required: true,
+        default: ""
     },
     password: {
         type: String,
@@ -32,7 +39,8 @@ const userSchema = new mongoose.Schema({
     },
     role: {
         type: String,
-        enum: ["student", "teacher", "parent", "admin"],
+        enum: ["student", "teacher", "parent", "management", "admin"],
+
         default: "student"
     },
     profilePicture: {
