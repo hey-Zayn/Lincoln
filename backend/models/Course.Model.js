@@ -18,6 +18,11 @@ const CourseSchema = new mongoose.Schema({
         type: String,
         enum: ["Beginner", "Medium", "Advance"]
     },
+    CourseLanguage: {
+        type: String,
+        required: true,
+        default: "English"
+    },
     coursePrice: {
         type: Number,
         default: 0
@@ -32,6 +37,18 @@ const CourseSchema = new mongoose.Schema({
             ref: "Lecture"
         }
     ],
+    sections: [
+        {
+            sectionTitle: { type: String, required: true },
+            lectures: [
+                {
+                    type: mongoose.Schema.Types.ObjectId,
+                    ref: "Lecture"
+                }
+            ]
+        }
+    ],
+
     teacher: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "User",
@@ -48,7 +65,11 @@ const CourseSchema = new mongoose.Schema({
             type: mongoose.Schema.Types.ObjectId,
             ref: "Material"
         }
-    ]
+    ],
+    isPublished: {
+        type: Boolean,
+        default: false
+    }
 }, { timestamps: true });
 
 const Course = mongoose.model("Course", CourseSchema);

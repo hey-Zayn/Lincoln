@@ -1,4 +1,5 @@
 const Course = require('../models/Course.Model');
+const cloudinary = require("../config/Database/cloudinary/cloudinary");
 const Material = require('../models/Material.Model');
 const Assignment = require('../models/Assignment.Model');
 const Submission = require('../models/Submission.Model');
@@ -9,7 +10,7 @@ const CourseProgress = require('../models/courseProgress.Model');
 // --- Course Controllers ---
 exports.createCourse = async (req, res) => {
     try {
-        const { title, description, category, courseLevel, coursePrice, courseThumbnail } = req.body;
+        let { title, CourseLanguage, description, category, courseLevel, coursePrice, courseThumbnail, isPublished } = req.body;
 
         if (!title || !description || !category) {
             return res.status(400).json({
@@ -26,13 +27,22 @@ exports.createCourse = async (req, res) => {
             });
         }
 
+        if (courseThumbnail && courseThumbnail.startsWith("data:image")) {
+            const uploadResponse = await cloudinary.uploader.upload(courseThumbnail, {
+                folder: "courses"
+            });
+            courseThumbnail = uploadResponse.secure_url;
+        }
+
         const course = await Course.create({
             title,
+            CourseLanguage,
             description,
             category,
             courseLevel,
             coursePrice,
             courseThumbnail,
+            isPublished,
             teacher: req.user._id
         });
 
@@ -52,7 +62,7 @@ exports.createCourse = async (req, res) => {
 
 exports.getAllCourses = async (req, res) => {
     try {
-        const courses = await Course.find();
+        const courses = await Course.find().populate('teacher', 'firstName lastName email profilePicture');
         res.status(200).json({
             success: true,
             message: "Courses fetched successfully",
@@ -87,7 +97,10 @@ exports.getAllCoursesByUser = async (req, res) => {
 
 exports.getCourseById = async (req, res) => {
     try {
-        const course = await Course.findById(req.params.id).populate('lectures');
+        const course = await Course.findById(req.params.id)
+            .populate('lectures')
+            .populate('teacher', 'firstName lastName email profilePicture')
+            .populate('sections.lectures');
         if (!course) {
             return res.status(404).json({
                 success: false,
@@ -110,7 +123,7 @@ exports.getCourseById = async (req, res) => {
 
 exports.updateCourse = async (req, res) => {
     try {
-        const { title, description, category, courseLevel, coursePrice, courseThumbnail } = req.body;
+        const { title, CourseLanguage, description, category, courseLevel, coursePrice, courseThumbnail } = req.body;
         const courseId = req.params.id;
 
         let course = await Course.findById(courseId);
@@ -145,6 +158,127 @@ exports.updateCourse = async (req, res) => {
     }
 };
 
+exports.togglePublish = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { isPublished } = req.body;
+
+        const course = await Course.findById(id);
+        if (!course) {
+            return res.status(404).json({
+                success: false,
+                message: "Course not found"
+            });
+        }
+
+        // Check ownership
+        if (course.teacher.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
+            return res.status(403).json({
+                success: false,
+                message: "Not authorized to publish this course"
+            });
+        }
+
+        course.isPublished = isPublished;
+        await course.save();
+
+        res.status(200).json({
+            success: true,
+            message: isPublished ? "Course published successfully" : "Course unpublished successfully",
+            isPublished: course.isPublished
+        });
+    } catch (err) {
+        console.log("Toggle Publish Error:", err);
+        res.status(500).json({
+            success: false,
+            message: "Internal Server Error togglePublish"
+        });
+    }
+};
+
+exports.addSection = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { sectionTitle } = req.body;
+
+        if (!sectionTitle) {
+            return res.status(400).json({ success: false, message: "Section title is required" });
+        }
+
+        const course = await Course.findById(id);
+        if (!course) return res.status(404).json({ success: false, message: "Course not found" });
+
+        // Check ownership
+        if (course.teacher.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
+            return res.status(403).json({ success: false, message: "Not authorized" });
+        }
+
+        course.sections.push({ sectionTitle, lectures: [] });
+        await course.save();
+
+        res.status(201).json({
+            success: true,
+            message: "Section added successfully",
+            sections: course.sections
+        });
+    } catch (err) {
+        res.status(500).json({ success: false, message: "Internal Server Error addSection" });
+    }
+};
+
+exports.updateSection = async (req, res) => {
+    try {
+        const { id, sectionId } = req.params;
+        const { sectionTitle } = req.body;
+
+        const course = await Course.findById(id);
+        if (!course) return res.status(404).json({ success: false, message: "Course not found" });
+
+        // Check ownership
+        if (course.teacher.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
+            return res.status(403).json({ success: false, message: "Not authorized" });
+        }
+
+        const section = course.sections.id(sectionId);
+        if (!section) return res.status(404).json({ success: false, message: "Section not found" });
+
+        section.sectionTitle = sectionTitle;
+        await course.save();
+
+        res.status(200).json({
+            success: true,
+            message: "Section updated successfully",
+            sections: course.sections
+        });
+    } catch (err) {
+        res.status(500).json({ success: false, message: "Internal Server Error updateSection" });
+    }
+};
+
+exports.deleteSection = async (req, res) => {
+    try {
+        const { id, sectionId } = req.params;
+
+        const course = await Course.findById(id);
+        if (!course) return res.status(404).json({ success: false, message: "Course not found" });
+
+        // Check ownership
+        if (course.teacher.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
+            return res.status(403).json({ success: false, message: "Not authorized" });
+        }
+
+        course.sections.pull({ _id: sectionId });
+        await course.save();
+
+        res.status(200).json({
+            success: true,
+            message: "Section deleted successfully",
+            sections: course.sections
+        });
+    } catch (err) {
+        res.status(500).json({ success: false, message: "Internal Server Error deleteSection" });
+    }
+};
 exports.deleteCourse = async (req, res) => {
     try {
         const courseId = req.params.id;

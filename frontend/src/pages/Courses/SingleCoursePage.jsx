@@ -21,7 +21,7 @@ const SingleCoursePage = () => {
   const navigate = useNavigate();
   const { getCourseById, currentCourse, isLoading, enrollInCourse, isEnrolling } = useCourseStore();
   const { authUser } = useAuthStore();
-
+  // console.log(currentCourse)
   useEffect(() => {
     window.scrollTo(0, 0);
     getCourseById(id);
@@ -51,7 +51,7 @@ const SingleCoursePage = () => {
       {/* Hero Header */}
       <div className="relative bg-slate-50 dark:bg-zinc-900 border-b border-slate-200 dark:border-zinc-800 pt-32 pb-20 px-6">
         <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-          <div>
+          <div className="lg:justify-self-start items-start">
             <div className="flex items-center gap-2 mb-6">
               <span className="px-3 py-1 bg-red-600/10 text-red-600 text-xs font-bold rounded-md border border-red-600/20 uppercase tracking-wider">
                 {currentCourse.category}
@@ -68,18 +68,18 @@ const SingleCoursePage = () => {
               {currentCourse.description}
             </p>
 
-            <div className="flex flex-wrap items-center gap-6 text-sm text-slate-500 dark:text-slate-300 font-bold uppercase tracking-wider">
+            <div className="flex flex-wrap items-center gap-6 text-sm text-slate-500 dark:text-slate-300 font-medium uppercase tracking-wider">
               <div className="flex items-center gap-2">
                 <Users className="size-5 text-red-600" />
                 <span>{currentCourse.studentsEnrolled?.length || 0} Students</span>
               </div>
               <div className="flex items-center gap-2">
                 <Calendar className="size-5 text-red-600" />
-                <span>Updated Recently</span>
+                <span>{new Date(currentCourse.createdAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</span>
               </div>
               <div className="flex items-center gap-2">
                 <Globe className="size-5 text-red-600" />
-                <span>English</span>
+                <span>{currentCourse.language || "English"}</span>
               </div>
             </div>
           </div>

@@ -1,17 +1,22 @@
 const Course = require('../models/Course.Model');
-const Material = require('../models/Material.Model');
-const Assignment = require('../models/Assignment.Model');
-const Submission = require('../models/Submission.Model');
-const Quiz = require('../models/Quiz.Model');
 const Lecture = require('../models/Lecture.Model');
 const CourseProgress = require('../models/courseProgress.Model');
+const cloudinary = require('../config/Database/cloudinary/cloudinary');
+const DataUriParser = require('datauri/parser');
+const path = require('path');
+
+const getDataUri = (file) => {
+    const parser = new DataUriParser();
+    const extName = path.extname(file.originalname).toString();
+    return parser.format(extName, file.buffer);
+};
 
 
 
 // --- Lecture Controllers ---
 exports.createLecture = async (req, res) => {
     try {
-        const { title, description, videoUrl, publicId, isPreviewFree } = req.body;
+        const { title, description, isPreviewFree, sectionId } = req.body;
         const { courseId } = req.params;
 
         if (!title) {
@@ -37,6 +42,19 @@ exports.createLecture = async (req, res) => {
             });
         }
 
+        let videoUrl = req.body.videoUrl || "";
+        let publicId = req.body.publicId || "";
+
+        if (req.file) {
+            const file = getDataUri(req.file);
+            const myCloud = await cloudinary.uploader.upload(file.content, {
+                resource_type: "video",
+                folder: "lectures",
+            });
+            videoUrl = myCloud.secure_url;
+            publicId = myCloud.public_id;
+        }
+
         const lecture = await Lecture.create({
             title,
             description,
@@ -45,12 +63,24 @@ exports.createLecture = async (req, res) => {
             isPreviewFree
         });
 
-        course.lectures.push(lecture._id);
+        if (sectionId) {
+            const section = course.sections.id(sectionId);
+            if (section) {
+                section.lectures.push(lecture._id);
+            } else {
+                // If sectionId is provided but not found, maybe push to general lectures
+                course.lectures.push(lecture._id);
+            }
+        } else {
+            // Backward compatibility
+            course.lectures.push(lecture._id);
+        }
+
         await course.save();
 
         res.status(201).json({
             success: true,
-            message: "Lecture created and added to course successfully",
+            message: "Lecture created and added successfully",
             lecture
         });
     } catch (err) {
@@ -134,9 +164,26 @@ exports.editLecture = async (req, res) => {
             });
         }
 
+        let vUrl = req.body.videoUrl || lecture.videoUrl;
+        let pId = req.body.publicId || lecture.publicId;
+
+        if (req.file) {
+            // Delete old video if it exists
+            if (lecture.publicId) {
+                await cloudinary.uploader.destroy(lecture.publicId, { resource_type: "video" });
+            }
+            const file = getDataUri(req.file);
+            const myCloud = await cloudinary.uploader.upload(file.content, {
+                resource_type: "video",
+                folder: "lectures",
+            });
+            vUrl = myCloud.secure_url;
+            pId = myCloud.public_id;
+        }
+
         const updatedLecture = await Lecture.findByIdAndUpdate(
             lectureId,
-            { title, description, videoUrl, publicId, isPreviewFree },
+            { title, description, videoUrl: vUrl, publicId: pId, isPreviewFree },
             { new: true }
         );
 
@@ -177,9 +224,19 @@ exports.removeLecture = async (req, res) => {
 
         // Remove from any course that references it
         await Course.updateMany(
-            { lectures: lectureId },
-            { $pull: { lectures: lectureId } }
+            {},
+            {
+                $pull: {
+                    lectures: lectureId,
+                    "sections.$[].lectures": lectureId
+                }
+            }
         );
+
+        // Delete video from Cloudinary
+        if (lecture.publicId) {
+            await cloudinary.uploader.destroy(lecture.publicId, { resource_type: "video" });
+        }
 
         await Lecture.findByIdAndDelete(lectureId);
 
