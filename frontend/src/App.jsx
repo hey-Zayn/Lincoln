@@ -31,6 +31,7 @@ import StudentHome from './pages/Dashboard/Student/pages/StudentDashboardHome'
 import ManagementDashboard from './pages/Dashboard/Management/ManagementDashboard'
 import ManagementHome from './pages/Dashboard/Management/pages/ManagementHome'
 import SettingPage from './pages/Settings/SettingPage'
+import CoursesTeacherDashboard from './pages/Dashboard/Teacher/Pages/CoursesTeacherDashboard'
 
 
 const App = () => {
@@ -98,7 +99,8 @@ const App = () => {
               : <Navigate to="/" />
           }>
             <Route path="dashboard" element={<TeacherDashboardHome />} />
-            <Route path="courses" element={<div className="p-4 text-white">My Courses List (Coming Soon)</div>} />
+            {/* <Route path="courses" element={<div className="p-4 text-white">My Courses List (Coming Soon)</div>} /> */}
+            <Route path="courses" element={<CoursesTeacherDashboard />} />
             <Route path="courses/create" element={<CreateCoursePage />} />
             <Route path="courses/:id/edit" element={<CreateCoursePage />} />
             <Route path="courses/:id/curriculum" element={<CreateCourseLectures />} />

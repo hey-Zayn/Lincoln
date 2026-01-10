@@ -1,197 +1,497 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useCourseStore } from '../../store/useCourseStore';
-import { 
-  Loader, 
-  Menu, 
-  X, 
-  Play, 
-  CheckCircle2, 
-  Lock, 
+import {
+  Loader2,
+  Menu,
+  X,
+  Play,
+  CheckCircle2,
+  Lock,
   ChevronLeft,
   FileText,
   MessageSquare,
-  HelpCircle
+  HelpCircle,
+  Clock,
+  BookOpen,
+  User,
+  Download,
+  Share2,
+  Maximize2,
+  Volume2,
+  Settings,
+  ArrowLeft,
+  ArrowRight,
+  Bookmark,
+  Flag
 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import { Progress } from '@/components/ui/progress';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { toast } from 'sonner';
 
 const LecturesPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { getCourseById, currentCourse, isLoading } = useCourseStore();
   const [selectedLecture, setSelectedLecture] = useState(null);
+  const [selectedSection, setSelectedSection] = useState(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [progress, setProgress] = useState(35); // Mock progress
 
   useEffect(() => {
     getCourseById(id).then(course => {
-      if (course && course.lectures?.length > 0) {
-        setSelectedLecture(course.lectures[0]);
+      if (course) {
+        // Set first section
+        if (course.sections?.length > 0) {
+          const firstSection = course.sections[0];
+          setSelectedSection(firstSection);
+
+          // Set first lecture from first section
+          if (firstSection.lectures?.length > 0) {
+            setSelectedLecture(firstSection.lectures[0]);
+          }
+        } else if (course.lectures?.length > 0) {
+          // Fallback for flat structure
+          setSelectedLecture(course.lectures[0]);
+        }
       }
     });
   }, [id, getCourseById]);
 
+  const handleLectureSelect = (lecture, section) => {
+    setSelectedLecture(lecture);
+    setSelectedSection(section);
+    if (window.innerWidth < 1024) {
+      setIsSidebarOpen(false);
+    }
+  };
+
+  const handleMarkComplete = () => {
+    toast.success("Lecture marked as completed");
+    // Here you would update progress in your backend
+  };
+
+  const calculateTotalDuration = (lectures) => {
+    // Mock calculation - in real app, get duration from video metadata
+    return (lectures?.length || 0) * 15; // 15 minutes per lecture
+  };
+
+  const calculateCompletedLectures = () => {
+    // Mock calculation - in real app, get from user progress
+    return Math.floor((progress / 100) * getTotalLectures());
+  };
+
+  const getTotalLectures = () => {
+    if (!currentCourse?.sections) return 0;
+    return currentCourse.sections.reduce((total, section) =>
+      total + (section.lectures?.length || 0), 0
+    );
+  };
+
   if (isLoading || !currentCourse) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white dark:bg-zinc-950">
-        <Loader className="size-12 animate-spin text-red-600" />
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="flex h-screen bg-white dark:bg-zinc-950 text-slate-900 dark:text-white pt-16 overflow-hidden transition-colors duration-500">
-      {/* Sidebar Overlay for Mobile */}
-      {!isSidebarOpen && (
-        <button 
-          onClick={() => setIsSidebarOpen(true)}
-          className="lg:hidden absolute bottom-8 right-8 z-50 size-14 bg-red-600 rounded-md flex items-center justify-center shadow-2xl shadow-red-600/20 active:scale-95 transition-transform"
-        >
-          <Menu className="size-6 text-white" />
-        </button>
-      )}
+    <div className="flex h-screen bg-background overflow-hidden">
+      {/* Mobile Sidebar Toggle */}
+      <Button
+        size="icon"
+        variant="secondary"
+        className="lg:hidden fixed bottom-4 right-4 z-50 h-12 w-12 shadow-lg"
+        onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+      >
+        {isSidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+      </Button>
 
       {/* Sidebar */}
       <div className={`
-        ${isSidebarOpen ? 'w-full lg:w-96' : 'w-0'} 
-        fixed lg:relative z-40 h-full bg-slate-50 dark:bg-zinc-900 border-r border-slate-200 dark:border-zinc-800 transition-all duration-300 overflow-hidden
+        ${isSidebarOpen ? 'translate-x-0 w-full lg:w-80' : '-translate-x-full lg:translate-x-0 lg:w-20'} 
+        fixed lg:relative z-40 h-full bg-card border-r transition-all duration-300 flex flex-col
       `}>
-        <div className="p-6 h-full flex flex-col">
-          <div className="flex items-center justify-between mb-8">
-            <h2 className="text-xl font-black uppercase italic tracking-tight flex items-center gap-3">
-              <button 
-                onClick={() => navigate(`/course/${id}`)}
-                className="p-2 hover:bg-slate-200 dark:hover:bg-zinc-800 rounded-md transition-colors"
-              >
-                <ChevronLeft className="size-5" />
-              </button>
-              Modules
-            </h2>
-            <button onClick={() => setIsSidebarOpen(false)} className="lg:hidden p-2 hover:bg-slate-200 dark:hover:bg-zinc-800 rounded-md text-slate-500">
-              <X className="size-6" />
-            </button>
+        {/* Sidebar Header - Collapsed state */}
+        {!isSidebarOpen && (
+          <div className="p-4 border-b">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setIsSidebarOpen(true)}
+              className="w-full"
+            >
+              <Menu className="h-5 w-5" />
+            </Button>
           </div>
+        )}
 
-          <div className="flex-1 overflow-y-auto space-y-3 pr-2 custom-scrollbar">
-            {currentCourse.lectures?.map((lecture, i) => (
-              <button
-                key={lecture._id}
-                onClick={() => {
-                  setSelectedLecture(lecture);
-                  if (window.innerWidth < 1024) setIsSidebarOpen(false);
-                }}
-                className={`w-full text-left p-4 rounded-md border-2 transition-all flex items-center gap-4 group ${
-                  selectedLecture?._id === lecture._id
-                  ? 'bg-red-600/5 border-red-600 text-red-600 shadow-lg shadow-red-600/5'
-                  : 'bg-white dark:bg-zinc-900/50 border-slate-100 dark:border-zinc-800 text-slate-600 dark:text-slate-400 hover:border-red-600/30'
-                }`}
-              >
-                <div className={`size-10 rounded-md flex items-center justify-center font-black italic text-sm shrink-0 shadow-inner transition-colors ${
-                  selectedLecture?._id === lecture._id ? 'bg-red-600 text-white' : 'bg-slate-100 dark:bg-zinc-800 text-slate-400'
-                }`}>
-                  {i + 1}
+        {/* Sidebar Content - Expanded state */}
+        {isSidebarOpen && (
+          <>
+            {/* Header */}
+            <div className="p-6 border-b">
+              <div className="flex items-center justify-between mb-4">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => navigate(`/courses/${id}`)}
+                  className="gap-2"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  Back to Course
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setIsSidebarOpen(false)}
+                  className="lg:hidden"
+                >
+                  <X className="h-5 w-5" />
+                </Button>
+              </div>
+
+              <h1 className="text-xl font-bold truncate">{currentCourse.title}</h1>
+              <p className="text-sm text-muted-foreground mt-1">
+                {getTotalLectures()} lectures • {currentCourse.sections?.length || 0} sections
+              </p>
+            </div>
+
+            {/* Progress Section */}
+            <div className="p-6 border-b space-y-4">
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="font-medium">Course Progress</span>
+                  <span className="font-semibold">{progress}%</span>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <h4 className="font-black text-xs uppercase italic truncate mb-1">{lecture.title}</h4>
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] uppercase font-bold tracking-widest opacity-60">12:45 min</span>
-                    <span className="text-[10px] opacity-20">•</span>
-                    {lecture.isPreviewFree && (
-                      <span className="text-[10px] uppercase font-black text-emerald-600 tracking-wider">Unlocked</span>
-                    )}
+                <Progress value={progress} className="h-2" />
+              </div>
+              <div className="flex items-center justify-between text-sm text-muted-foreground">
+                <span>{calculateCompletedLectures()} of {getTotalLectures()} completed</span>
+                <span>{calculateTotalDuration()} min total</span>
+              </div>
+            </div>
+
+            {/* Sections List */}
+            <ScrollArea className="flex-1">
+              <div className="p-6 space-y-6">
+                {currentCourse.sections?.map((section, sIndex) => (
+                  <div key={section._id || sIndex} className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <BookOpen className="h-4 w-4 text-muted-foreground" />
+                        <h3 className="font-semibold text-sm">
+                          Section {sIndex + 1}: {section.sectionTitle || `Section ${sIndex + 1}`}
+                        </h3>
+                      </div>
+                      <Badge variant="outline" className="text-xs">
+                        {section.lectures?.length || 0}
+                      </Badge>
+                    </div>
+
+                    <div className="space-y-2 ">
+                      {section.lectures?.map((lecture, lIndex) => (
+                        <Button
+                          key={lecture._id || lIndex}
+                          variant={selectedLecture?._id === lecture._id ? "secondary" : "ghost"}
+                          className="w-full justify-start h-auto py-3 px-4 "
+                          onClick={() => handleLectureSelect(lecture, section)}
+                        >
+                          <div className="flex items-start gap-3 w-full">
+                            <div className={`
+                              flex-shrink-0 mt-0.5 size-6 rounded-full flex items-center justify-center text-xs
+                              ${selectedLecture?._id === lecture._id
+                                ? 'bg-primary text-primary-foreground'
+                                : 'bg-muted text-muted-foreground'
+                              }
+                            `}>
+                              {lIndex + 1}
+                            </div>
+                            <div className="flex-1 text-left min-w-0 ">
+                              <p className="font-medium text-sm truncate">{lecture.title}</p>
+                              <div className="flex items-center gap-2 mt-1">
+                                <Clock className="h-3 w-3 text-muted-foreground" />
+                                <span className="text-xs text-muted-foreground">15 min</span>
+                                {lecture.isPreviewFree && (
+                                  <Badge variant="outline" className="text-xs h-5 px-1.5">
+                                    Free
+                                  </Badge>
+                                )}
+                              </div>
+                            </div>
+                            {selectedLecture?._id === lecture._id && (
+                              <Play className="h-4 w-4 text-primary flex-shrink-0" />
+                            )}
+                          </div>
+                        </Button>
+                      ))}
+                    </div>
                   </div>
+                ))}
+              </div>
+            </ScrollArea>
+
+            {/* Instructor Info */}
+            <div className="p-6 border-t">
+              <div className="flex items-center gap-3">
+                <Avatar>
+                  <AvatarImage src={currentCourse.teacher?.avatar} />
+                  <AvatarFallback>
+                    <User className="h-4 w-4" />
+                  </AvatarFallback>
+                </Avatar>
+                <div>
+                  <p className="text-sm font-medium">Instructor</p>
+                  <p className="text-xs text-muted-foreground">
+                    {currentCourse.teacher?.name || 'Course Instructor'}
+                  </p>
                 </div>
-                <Play className={`size-4 transition-all ${selectedLecture?._id === lecture._id ? 'opacity-100 scale-110' : 'opacity-0 group-hover:opacity-40'}`} />
-              </button>
-            ))}
-          </div>
-        </div>
+              </div>
+            </div>
+          </>
+        )}
       </div>
 
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col h-full overflow-y-auto bg-white dark:bg-zinc-950">
-        <div className="max-w-5xl mx-auto w-full p-6 lg:p-12">
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Video Player Header */}
+        <div className="border-b px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="min-w-0">
+              <h2 className="text-lg font-semibold truncate">
+                {selectedLecture?.title || 'Select a lecture'}
+              </h2>
+              {selectedSection && (
+                <p className="text-sm text-muted-foreground truncate">
+                  {selectedSection.sectionTitle} • Section {currentCourse.sections?.findIndex(s => s._id === selectedSection._id) + 1}
+                </p>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              <Button variant="ghost" size="icon">
+                <Settings className="h-4 w-4" />
+              </Button>
+              <Button variant="ghost" size="icon">
+                <Maximize2 className="h-4 w-4" />
+              </Button>
+              <Button variant="ghost" size="icon">
+                <Volume2 className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* Video Player Area */}
+        <div className="flex-1 p-6 overflow-auto">
           {selectedLecture ? (
-            <>
-              {/* Video Player Mockup/Real */}
-              <div className="aspect-video w-full bg-slate-900 rounded-md overflow-hidden mb-12 shadow-2xl border border-slate-200 dark:border-zinc-800 relative group ring-1 ring-slate-100 dark:ring-zinc-800">
-                {selectedLecture.videoUrl ? (
-                  <video 
-                    src={selectedLecture.videoUrl} 
-                    controls 
-                    className="w-full h-full object-contain"
-                  />
-                ) : (
-                  <div className="w-full h-full flex flex-col items-center justify-center text-slate-500">
-                    <div className="size-24 bg-zinc-900 rounded-md flex items-center justify-center mb-6 border border-zinc-800 shadow-inner">
-                      <Play className="size-10 text-red-600 fill-red-600 animate-pulse" />
-                    </div>
-                    <p className="font-black uppercase italic tracking-widest text-xs">Signal Lost</p>
-                    <p className="text-[10px] mt-2 font-medium text-slate-600 uppercase tracking-widest">Awaiting feed from instructor</p>
-                  </div>
-                )}
-                
-                <div className="absolute top-8 left-8 opacity-0 group-hover:opacity-100 transition-all transform translate-y-2 group-hover:translate-y-0">
-                  <div className="px-4 py-2 bg-black/80 backdrop-blur-xl rounded-md text-[10px] font-black uppercase tracking-[0.2em] text-red-600 border border-red-600/30 shadow-2xl">
-                    Live Session • Module {currentCourse.lectures.indexOf(selectedLecture) + 1}
-                  </div>
-                </div>
-              </div>
-
-              {/* Lecture Details */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-12">
-                <div className="md:col-span-3">
-                  <h1 className="text-4xl font-black uppercase italic tracking-tight mb-6 text-slate-900 dark:text-white">{selectedLecture.title}</h1>
-                  <div className="flex flex-wrap items-center gap-6 mb-10">
-                    <button className="flex items-center gap-3 px-4 py-2 bg-slate-100 dark:bg-zinc-800 hover:bg-red-600/10 rounded-md transition-colors group">
-                      <div className="size-8 rounded-md bg-white dark:bg-zinc-900 flex items-center justify-center text-red-600 shadow-sm">
-                        <FileText className="size-4" />
+            <div className="max-w-6xl mx-auto space-y-6">
+              {/* Video Player */}
+              <Card className="overflow-hidden">
+                <div className="aspect-video bg-black relative">
+                  {selectedLecture.videoUrl ? (
+                    <video
+                      src={selectedLecture.videoUrl}
+                      controls
+                      className="w-full h-full"
+                    />
+                  ) : (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground">
+                      <div className="size-20 bg-muted rounded-full flex items-center justify-center mb-4">
+                        <Play className="h-10 w-10" />
                       </div>
-                      <span className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 group-hover:text-red-600">Assets (2)</span>
-                    </button>
-                    <button className="flex items-center gap-3 px-4 py-2 bg-slate-100 dark:bg-zinc-800 hover:bg-emerald-600/10 rounded-md transition-colors group">
-                      <div className="size-8 rounded-md bg-white dark:bg-zinc-900 flex items-center justify-center text-emerald-600 shadow-sm">
-                        <CheckCircle2 className="size-4" />
+                      <p className="text-lg font-medium">Video content will be available soon</p>
+                      <p className="text-sm mt-2">The instructor is preparing this lecture</p>
+                    </div>
+                  )}
+                </div>
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <Button onClick={handleMarkComplete} className="gap-2">
+                        <CheckCircle2 className="h-4 w-4" />
+                        Mark Complete
+                      </Button>
+                      <Button variant="outline" size="icon">
+                        <Bookmark className="h-4 w-4" />
+                      </Button>
+                      <Button variant="outline" size="icon">
+                        <Flag className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button variant="outline" size="sm" className="gap-2">
+                        <Download className="h-4 w-4" />
+                        Resources
+                      </Button>
+                      <Button variant="outline" size="icon">
+                        <Share2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Lecture Content Tabs */}
+              <Tabs defaultValue="description" className="space-y-6">
+                <TabsList>
+                  <TabsTrigger value="description">Description</TabsTrigger>
+                  <TabsTrigger value="resources">Resources</TabsTrigger>
+                  <TabsTrigger value="discussion">Discussion</TabsTrigger>
+                  <TabsTrigger value="notes">Notes</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="description" className="space-y-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>About this lecture</CardTitle>
+                      <CardDescription>
+                        What you'll learn in this session
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-muted-foreground leading-relaxed">
+                        {selectedLecture.description ||
+                          "This lecture covers essential concepts and practical applications. You'll gain hands-on experience through examples and exercises designed to reinforce learning objectives."}
+                      </p>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Learning Objectives</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div className="flex items-start gap-3">
+                        <CheckCircle2 className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
+                        <p>Understand core concepts presented in the lecture</p>
                       </div>
-                      <span className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 group-hover:text-emerald-600">Complete</span>
-                    </button>
-                  </div>
+                      <div className="flex items-start gap-3">
+                        <CheckCircle2 className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
+                        <p>Apply knowledge to practical scenarios</p>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <CheckCircle2 className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
+                        <p>Complete exercises to reinforce understanding</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
 
-                  <div className="space-y-6">
-                     <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Briefing:</h3>
-                     <div className="text-slate-600 dark:text-slate-400 leading-relaxed bg-slate-50 dark:bg-zinc-900/50 p-8 rounded-md border border-slate-100 dark:border-zinc-800 font-medium italic">
-                       {selectedLecture.description || "In this module, we dissect the strategic frameworks defined in the catalog. You will gain tactical insight through practical implementation and peer-reviewed collaboration."}
-                     </div>
-                  </div>
-                </div>
+                <TabsContent value="resources">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Lecture Resources</CardTitle>
+                      <CardDescription>
+                        Downloadable materials for this lecture
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="flex items-center justify-between p-4 border rounded-lg">
+                        <div className="flex items-center gap-3">
+                          <FileText className="h-5 w-5 text-blue-500" />
+                          <div>
+                            <p className="font-medium">Lecture Slides</p>
+                            <p className="text-sm text-muted-foreground">PDF • 2.4 MB</p>
+                          </div>
+                        </div>
+                        <Button variant="outline" size="sm">
+                          Download
+                        </Button>
+                      </div>
+                      <div className="flex items-center justify-between p-4 border rounded-lg">
+                        <div className="flex items-center gap-3">
+                          <FileText className="h-5 w-5 text-green-500" />
+                          <div>
+                            <p className="font-medium">Exercise Files</p>
+                            <p className="text-sm text-muted-foreground">ZIP • 5.7 MB</p>
+                          </div>
+                        </div>
+                        <Button variant="outline" size="sm">
+                          Download
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
 
-                <div className="space-y-4">
-                  <button className="w-full p-5 bg-white dark:bg-zinc-900 border border-slate-100 dark:border-zinc-800 rounded-md flex items-center gap-4 hover:border-red-600/50 transition-all text-left shadow-sm hover:shadow-xl hover:shadow-red-600/5 group">
-                    <div className="size-10 rounded-md bg-blue-100 dark:bg-blue-500/10 flex items-center justify-center shrink-0">
-                        <MessageSquare className="size-5 text-blue-600" />
-                    </div>
-                    <div>
-                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-900 dark:text-slate-200">Terminal</p>
-                      <p className="text-[10px] text-slate-500 font-bold uppercase tracking-tight">Open Comm-Link</p>
-                    </div>
-                  </button>
-                  <button className="w-full p-5 bg-white dark:bg-zinc-900 border border-slate-100 dark:border-zinc-800 rounded-md flex items-center gap-4 hover:border-red-600/50 transition-all text-left shadow-sm hover:shadow-xl hover:shadow-red-600/5 group">
-                    <div className="size-10 rounded-md bg-purple-100 dark:bg-purple-500/10 flex items-center justify-center shrink-0">
-                        <HelpCircle className="size-5 text-purple-600" />
-                    </div>
-                    <div>
-                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-900 dark:text-slate-200">Support</p>
-                      <p className="text-[10px] text-slate-500 font-bold uppercase tracking-tight">Signal Ops</p>
-                    </div>
-                  </button>
+                <TabsContent value="discussion">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Discussion Forum</CardTitle>
+                      <CardDescription>
+                        Ask questions and discuss with other students
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="p-4 border rounded-lg">
+                        <div className="flex items-start gap-3">
+                          <Avatar className="h-8 w-8">
+                            <AvatarFallback>JD</AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <p className="font-medium">John Doe</p>
+                              <span className="text-xs text-muted-foreground">2 hours ago</span>
+                            </div>
+                            <p className="mt-2">Can someone explain the concept discussed at 12:45?</p>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex gap-3">
+                        <Avatar className="h-10 w-10">
+                          <AvatarFallback>Y</AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 space-y-2">
+                          <textarea
+                            placeholder="Add your question or comment..."
+                            className="w-full p-3 border rounded-lg resize-none"
+                            rows={3}
+                          />
+                          <div className="flex justify-end">
+                            <Button>Post Comment</Button>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+              </Tabs>
+
+              {/* Navigation Buttons */}
+              <div className="flex items-center justify-between pt-6 border-t">
+                <Button variant="outline" className="gap-2">
+                  <ArrowLeft className="h-4 w-4" />
+                  Previous Lecture
+                </Button>
+                <div className="text-sm text-muted-foreground">
+                  Lecture {selectedSection?.lectures?.findIndex(l => l._id === selectedLecture._id) + 1} of {selectedSection?.lectures?.length}
                 </div>
+                <Button variant="outline" className="gap-2">
+                  Next Lecture
+                  <ArrowRight className="h-4 w-4" />
+                </Button>
               </div>
-            </>
+            </div>
           ) : (
-            <div className="h-[500px] flex flex-col items-center justify-center text-slate-400 italic bg-slate-50 dark:bg-zinc-900/30 rounded-md border-2 border-dashed border-slate-200 dark:border-zinc-800 p-12 text-center">
-               <div className="size-20 bg-white dark:bg-zinc-900 rounded-md flex items-center justify-center mb-8 shadow-2xl shadow-black/5 ring-1 ring-slate-100 dark:ring-zinc-800">
-                    <Lock className="size-10 opacity-20" />
-               </div>
-               <h3 className="text-2xl font-black uppercase italic mb-4">Awaiting Selection</h3>
-               <p className="max-w-sm text-sm font-medium">Please initiate a module from the roster to begin your educational advancement.</p>
+            <div className="max-w-2xl mx-auto py-12 text-center">
+              <div className="size-24 bg-muted rounded-full flex items-center justify-center mx-auto mb-6">
+                <Play className="h-12 w-12" />
+              </div>
+              <h3 className="text-2xl font-bold mb-2">Select a Lecture</h3>
+              <p className="text-muted-foreground mb-6">
+                Choose a lecture from the sidebar to start learning
+              </p>
+              <Button onClick={() => setIsSidebarOpen(true)} className="lg:hidden">
+                <Menu className="h-4 w-4 mr-2" />
+                Open Course Contents
+              </Button>
             </div>
           )}
         </div>

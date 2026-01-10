@@ -27,6 +27,7 @@ const protectedRoute = async (req, res, next) => {
             })
         }
         req.user = user;
+        // console.log(`Auth Middleware: Request authorized for user ${user.email} (${user.role}). Request Body exists: ${!!req.body}`);
         next();
     } catch (error) {
         return res.status(401).json({

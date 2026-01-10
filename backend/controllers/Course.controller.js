@@ -10,7 +10,29 @@ const CourseProgress = require('../models/courseProgress.Model');
 // --- Course Controllers ---
 exports.createCourse = async (req, res) => {
     try {
-        let { title, CourseLanguage, description, category, courseLevel, coursePrice, courseThumbnail, isPublished } = req.body;
+        // console.log("Create Course Request Headers:", req.headers);
+        // console.log("Create Course Request Body:", req.body);
+
+        if (!req.body || Object.keys(req.body).length === 0) {
+            return res.status(400).json({
+                success: false,
+                message: "Request body is missing or could not be parsed. If sending as multipart/form-data, ensure text fields are correctly specified."
+            });
+        }
+
+        let {
+            title,
+            CourseLanguage,
+            description,
+            category,
+            courseLevel,
+            price,
+            thumbnail,
+            previewVideo,
+            learningOutcomes,
+            requirements,
+            isPublished
+        } = req.body;
 
         if (!title || !description || !category) {
             return res.status(400).json({
@@ -27,11 +49,19 @@ exports.createCourse = async (req, res) => {
             });
         }
 
-        if (courseThumbnail && courseThumbnail.startsWith("data:image")) {
-            const uploadResponse = await cloudinary.uploader.upload(courseThumbnail, {
-                folder: "courses"
+        if (thumbnail && thumbnail.startsWith("data:image")) {
+            const uploadResponse = await cloudinary.uploader.upload(thumbnail, {
+                folder: "courses/thumbnails"
             });
-            courseThumbnail = uploadResponse.secure_url;
+            thumbnail = uploadResponse.secure_url;
+        }
+
+        if (previewVideo && previewVideo.startsWith("data:video")) {
+            const uploadResponse = await cloudinary.uploader.upload(previewVideo, {
+                folder: "courses/previews",
+                resource_type: "video"
+            });
+            previewVideo = uploadResponse.secure_url;
         }
 
         const course = await Course.create({
@@ -40,8 +70,11 @@ exports.createCourse = async (req, res) => {
             description,
             category,
             courseLevel,
-            coursePrice,
-            courseThumbnail,
+            price,
+            thumbnail,
+            previewVideo,
+            learningOutcomes,
+            requirements,
             isPublished,
             teacher: req.user._id
         });
@@ -99,8 +132,11 @@ exports.getCourseById = async (req, res) => {
     try {
         const course = await Course.findById(req.params.id)
             .populate('lectures')
-            .populate('teacher', 'firstName lastName email profilePicture')
-            .populate('sections.lectures');
+            .populate({
+                path: 'sections.lectures',
+                model: 'Lecture'
+            })
+            .populate('teacher', 'firstName lastName email profilePicture');
         if (!course) {
             return res.status(404).json({
                 success: false,
@@ -123,7 +159,18 @@ exports.getCourseById = async (req, res) => {
 
 exports.updateCourse = async (req, res) => {
     try {
-        const { title, CourseLanguage, description, category, courseLevel, coursePrice, courseThumbnail } = req.body;
+        let {
+            title,
+            CourseLanguage,
+            description,
+            category,
+            courseLevel,
+            price,
+            thumbnail,
+            previewVideo,
+            learningOutcomes,
+            requirements
+        } = req.body;
         const courseId = req.params.id;
 
         let course = await Course.findById(courseId);
@@ -140,6 +187,23 @@ exports.updateCourse = async (req, res) => {
                 success: false,
                 message: "Not authorized to update this course"
             });
+        }
+
+        // Handle Thumbnail Upload
+        if (thumbnail && thumbnail.startsWith("data:image")) {
+            const uploadResponse = await cloudinary.uploader.upload(thumbnail, {
+                folder: "courses/thumbnails"
+            });
+            req.body.thumbnail = uploadResponse.secure_url;
+        }
+
+        // Handle Preview Video Upload
+        if (previewVideo && previewVideo.startsWith("data:video")) {
+            const uploadResponse = await cloudinary.uploader.upload(previewVideo, {
+                folder: "courses/previews",
+                resource_type: "video"
+            });
+            req.body.previewVideo = uploadResponse.secure_url;
         }
 
         course = await Course.findByIdAndUpdate(courseId, req.body, { new: true });
@@ -195,17 +259,44 @@ exports.togglePublish = async (req, res) => {
         });
     }
 };
+exports.getSections = async (req, res) => {
+    try {
+        const courseId = req.params.id;
+        const course = await Course.findById(courseId).populate({
+            path: 'sections.lectures',
+            model: 'Lecture'
+        });
 
+        if (!course) {
+            return res.status(404).json({
+                success: false,
+                message: "Course not found"
+            });
+        }
+
+        res.status(200).json({
+            success: true,
+            sections: course.sections
+        });
+    } catch (err) {
+        console.error("Get Sections Error:", err);
+        res.status(500).json({
+            success: false,
+            message: "Internal Server Error getSections"
+        });
+    }
+};
 exports.addSection = async (req, res) => {
     try {
-        const { id } = req.params;
-        const { sectionTitle } = req.body;
+        const courseId = req.params.id || req.body.courseId;
+        const { sectionTitle, title } = req.body;
+        const finalTitle = sectionTitle || title;
 
-        if (!sectionTitle) {
+        if (!finalTitle) {
             return res.status(400).json({ success: false, message: "Section title is required" });
         }
 
-        const course = await Course.findById(id);
+        const course = await Course.findById(courseId);
         if (!course) return res.status(404).json({ success: false, message: "Course not found" });
 
         // Check ownership
@@ -213,7 +304,7 @@ exports.addSection = async (req, res) => {
             return res.status(403).json({ success: false, message: "Not authorized" });
         }
 
-        course.sections.push({ sectionTitle, lectures: [] });
+        course.sections.push({ sectionTitle: finalTitle, lectures: [] });
         await course.save();
 
         res.status(201).json({
@@ -222,17 +313,19 @@ exports.addSection = async (req, res) => {
             sections: course.sections
         });
     } catch (err) {
+        console.error("Add Section Error:", err);
         res.status(500).json({ success: false, message: "Internal Server Error addSection" });
     }
 };
 
 exports.updateSection = async (req, res) => {
     try {
-        const { id, sectionId } = req.params;
-        const { sectionTitle } = req.body;
+        const { sectionId } = req.params;
+        const { sectionTitle, title } = req.body;
+        const finalTitle = sectionTitle || title;
 
-        const course = await Course.findById(id);
-        if (!course) return res.status(404).json({ success: false, message: "Course not found" });
+        const course = await Course.findOne({ "sections._id": sectionId });
+        if (!course) return res.status(404).json({ success: false, message: "Section not found or course context missing" });
 
         // Check ownership
         if (course.teacher.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
@@ -242,7 +335,7 @@ exports.updateSection = async (req, res) => {
         const section = course.sections.id(sectionId);
         if (!section) return res.status(404).json({ success: false, message: "Section not found" });
 
-        section.sectionTitle = sectionTitle;
+        section.sectionTitle = finalTitle || section.sectionTitle;
         await course.save();
 
         res.status(200).json({
@@ -251,16 +344,17 @@ exports.updateSection = async (req, res) => {
             sections: course.sections
         });
     } catch (err) {
+        console.error("Update Section Error:", err);
         res.status(500).json({ success: false, message: "Internal Server Error updateSection" });
     }
 };
 
 exports.deleteSection = async (req, res) => {
     try {
-        const { id, sectionId } = req.params;
+        const { sectionId } = req.params;
 
-        const course = await Course.findById(id);
-        if (!course) return res.status(404).json({ success: false, message: "Course not found" });
+        const course = await Course.findOne({ "sections._id": sectionId });
+        if (!course) return res.status(404).json({ success: false, message: "Section not found or course context missing" });
 
         // Check ownership
         if (course.teacher.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
@@ -276,6 +370,7 @@ exports.deleteSection = async (req, res) => {
             sections: course.sections
         });
     } catch (err) {
+        console.error("Delete Section Error:", err);
         res.status(500).json({ success: false, message: "Internal Server Error deleteSection" });
     }
 };

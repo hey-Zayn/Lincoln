@@ -30,6 +30,7 @@ export const useCourseStore = create((set) => ({
         try {
             const res = await axiosInstance.get("/courses/users-all-courses");
             set({ userCourses: res.data.courses });
+            // console.log(res.data.courses);
         } catch (error) {
             console.error("Error in getAllCoursesByUser:", error);
         } finally {
@@ -140,7 +141,7 @@ export const useCourseStore = create((set) => ({
 
     createLecture: async (courseId, data) => {
         try {
-            const res = await axiosInstance.post(`/courses/${courseId}/lecture/create`, data);
+            const res = await axiosInstance.post(`/lectures/${courseId}/lecture/create`, data);
             toast.success("Lecture created");
             return res.data.lecture;
         } catch (error) {

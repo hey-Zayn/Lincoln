@@ -1,371 +1,699 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { useCourseStore } from '../../../../store/useCourseStore';
-import { 
-  ChevronLeft, 
-  Upload, 
-  X, 
-  Save, 
-  BookOpen, 
-  Layout, 
-  IndianRupee,
-  Layers,
-  FileText,
-  Loader,
-  Sparkles,
-  Info,
-  Settings,
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Progress } from "@/components/ui/progress";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import {
+  Plus,
+  ChevronRight,
+  ChevronLeft,
+  Save,
+  Trash2,
+  Upload,
   Eye,
-  EyeOff,
-  Globe
 } from 'lucide-react';
 import { toast } from 'sonner';
+
+const STEPS = [
+  { id: 'basic', title: 'Basic Info', description: 'Course title and basic details' },
+  { id: 'content', title: 'Content', description: 'Course description and curriculum' },
+  { id: 'media', title: 'Media', description: 'Upload course thumbnail and preview' },
+];
 
 const CreateCoursePage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { createCourse, updateCourse, getCourseById, isCreating, isUpdating, currentCourse, togglePublish } = useCourseStore();
+  const { createCourse, updateCourse, getCourseById, isCreating, isUpdating } = useCourseStore();
 
+  const [currentStep, setCurrentStep] = useState(0);
   const [formData, setFormData] = useState({
     title: "",
     description: "",
     category: "",
     courseLevel: "Beginner",
-    coursePrice: "",
-    courseThumbnail: ""
+    CourseLanguage: "English",
+    price: 0,
+    thumbnail: "",
+    previewVideo: "",
+    learningOutcomes: [""],
+    requirements: [""],
+    isPublished: false
   });
 
-  const [preview, setPreview] = useState(null);
+  const [isEditing, setIsEditing] = useState(false);
 
+  // Load course data if editing
   useEffect(() => {
     if (id) {
+      setIsEditing(true);
       getCourseById(id).then(course => {
         if (course) {
           setFormData({
-            title: course.title,
-            description: course.description,
-            category: course.category,
-            courseLevel: course.courseLevel,
-            coursePrice: course.coursePrice,
-            courseThumbnail: course.courseThumbnail
+            title: course.title || "",
+            description: course.description || "",
+            category: course.category || "",
+            courseLevel: course.courseLevel || "Beginner",
+            CourseLanguage: course.CourseLanguage || "English",
+            price: course.price || 0,
+            thumbnail: course.thumbnail || "",
+            previewVideo: course.previewVideo || "",
+            learningOutcomes: course.learningOutcomes?.length ? [...course.learningOutcomes] : [""],
+            requirements: course.requirements?.length ? [...course.requirements] : [""],
+            isPublished: course.isPublished || false
           });
-          setPreview(course.courseThumbnail);
         }
       });
     }
   }, [id, getCourseById]);
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleThumbnailChange = (e) => {
-    const file = e.target.files?.[0];
+  const handleArrayChange = (index, value, field) => {
+    const newArray = [...formData[field]];
+    newArray[index] = value;
+    setFormData(prev => ({ ...prev, [field]: newArray }));
+  };
+
+  const addItem = (field) => {
+    setFormData(prev => ({ ...prev, [field]: [...prev[field], ""] }));
+  };
+
+  const removeItem = (index, field) => {
+    if (formData[field].length > 1) {
+      const newArray = formData[field].filter((_, i) => i !== index);
+      setFormData(prev => ({ ...prev, [field]: newArray }));
+    }
+  };
+
+  const handleFileUpload = (e, field) => {
+    const file = e.target.files[0];
     if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        return toast.error("Image size must be less than 5MB");
-      }
       const reader = new FileReader();
       reader.onloadend = () => {
-        setFormData({ ...formData, courseThumbnail: reader.result });
-        setPreview(reader.result);
+        setFormData(prev => ({ ...prev, [field]: reader.result }));
+        toast.success("File uploaded successfully");
       };
       reader.readAsDataURL(file);
     }
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    let result;
-    if (id) {
-      result = await updateCourse(id, formData);
-    } else {
-      result = await createCourse(formData);
-    }
-    
-    if (result) {
-      toast.success(id ? "Course updated!" : "Course created successfully!");
-      // If creating, navigate to edit page to add lectures
-      if (!id && result._id) {
-          navigate(`/teacher/courses/${result._id}/curriculum`);
-      } else {
-          navigate('/teacher/dashboard');
-      }
+  const validateCurrentStep = () => {
+    switch (currentStep) {
+      case 0:
+        if (!formData.title.trim()) {
+          toast.error("Please enter a course title");
+          return false;
+        }
+        if (!formData.category) {
+          toast.error("Please select a category");
+          return false;
+        }
+        return true;
+
+      case 1:
+        if (!formData.description.trim()) {
+          toast.error("Please enter a course description");
+          return false;
+        }
+        // Check if at least one learning outcome is filled
+        const hasLearningOutcomes = formData.learningOutcomes.some(item => item.trim());
+        if (!hasLearningOutcomes) {
+          toast.error("Please add at least one learning outcome");
+          return false;
+        }
+        return true;
+
+      case 2:
+        if (!formData.thumbnail) {
+          toast.error("Please upload a course thumbnail");
+          return false;
+        }
+        return true;
+
+      default:
+        return true;
     }
   };
 
-  const isPending = isCreating || isUpdating;
+  const validateAllSteps = () => {
+    // Validate all steps
+    for (let i = 0; i < STEPS.length; i++) {
+      switch (i) {
+        case 0:
+          if (!formData.title.trim()) {
+            toast.error("Please enter a course title");
+            return false;
+          }
+          if (!formData.category) {
+            toast.error("Please select a category");
+            return false;
+          }
+          break;
+
+        case 1:
+          if (!formData.description.trim()) {
+            toast.error("Please enter a course description");
+            return false;
+          }
+          const hasLearningOutcomes = formData.learningOutcomes.some(item => item.trim());
+          if (!hasLearningOutcomes) {
+            toast.error("Please add at least one learning outcome");
+            return false;
+          }
+          break;
+
+        case 2:
+          if (!formData.thumbnail) {
+            toast.error("Please upload a course thumbnail");
+            return false;
+          }
+          break;
+      }
+    }
+    return true;
+  };
+
+  const handleSaveDraft = async () => {
+    if (!validateCurrentStep()) return;
+
+    try {
+      const cleanData = {
+        ...formData,
+        learningOutcomes: formData.learningOutcomes.filter(item => item.trim()),
+        requirements: formData.requirements.filter(item => item.trim()),
+        price: parseFloat(formData.price) || 0,
+        isPublished: false
+      };
+
+      if (isEditing) {
+        await updateCourse(id, cleanData);
+        toast.success("Draft saved successfully");
+      } else {
+        await createCourse(cleanData);
+        toast.success("Course draft created successfully");
+      }
+    } catch (error) {
+      toast.error("Failed to save draft");
+      console.error(error);
+    }
+  };
+
+  const nextStep = () => {
+    if (!validateCurrentStep()) return;
+
+    if (currentStep < STEPS.length - 1) {
+      setCurrentStep(prev => prev + 1);
+    }
+  };
+
+  const prevStep = () => {
+    if (currentStep > 0) {
+      setCurrentStep(prev => prev - 1);
+    }
+  };
+
+  const handlePublish = async () => {
+    // Validate all steps before publishing
+    if (!validateAllSteps()) return;
+
+    try {
+      const cleanData = {
+        ...formData,
+        learningOutcomes: formData.learningOutcomes.filter(item => item.trim()),
+        requirements: formData.requirements.filter(item => item.trim()),
+        price: parseFloat(formData.price) || 0,
+        isPublished: true
+      };
+
+      if (isEditing) {
+        await updateCourse(id, cleanData);
+        toast.success("Course published successfully!");
+        navigate('/teacher/courses');
+      } else {
+        await createCourse(cleanData);
+        toast.success("Course created and published successfully!");
+        navigate('/teacher/courses');
+      }
+    } catch (error) {
+      toast.error(error.message || "Failed to publish course");
+      console.error(error);
+    }
+  };
+
+  const progress = ((currentStep + 1) / STEPS.length) * 100;
+
+  const renderStep = () => {
+    switch (currentStep) {
+      case 0:
+        return (
+          <div className="space-y-6">
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="title">Course Title *</Label>
+                <Input
+                  id="title"
+                  name="title"
+                  value={formData.title}
+                  onChange={handleChange}
+                  placeholder="Enter course title"
+                  className="mt-1"
+                  required
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="category">Category *</Label>
+                <Select
+                  value={formData.category}
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, category: value }))}
+                >
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="Select category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Web Development">Web Development</SelectItem>
+                    <SelectItem value="Mobile Development">Mobile Development</SelectItem>
+                    <SelectItem value="Data Science">Data Science</SelectItem>
+                    <SelectItem value="Design">Design</SelectItem>
+                    <SelectItem value="Business">Business</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="courseLevel">Difficulty Level</Label>
+                  <Select
+                    value={formData.courseLevel}
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, courseLevel: value }))}
+                  >
+                    <SelectTrigger className="mt-1">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Beginner">Beginner</SelectItem>
+                      <SelectItem value="Intermediate">Intermediate</SelectItem>
+                      <SelectItem value="Advanced">Advanced</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="CourseLanguage">Language</Label>
+                  <Select
+                    value={formData.CourseLanguage}
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, CourseLanguage: value }))}
+                  >
+                    <SelectTrigger className="mt-1">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="English">English</SelectItem>
+                      <SelectItem value="Urdu">Urdu</SelectItem>
+                      <SelectItem value="Hindi">Hindi</SelectItem>
+                      <SelectItem value="Spanish">Spanish</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="price">Price ($)</Label>
+                <Input
+                  id="price"
+                  name="price"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={formData.price}
+                  onChange={handleChange}
+                  placeholder="0.00"
+                  className="mt-1"
+                />
+              </div>
+            </div>
+          </div>
+        );
+
+      case 1:
+        return (
+          <div className="space-y-6">
+            <div>
+              <Label htmlFor="description">Course Description *</Label>
+              <Textarea
+                id="description"
+                name="description"
+                value={formData.description}
+                onChange={handleChange}
+                placeholder="Describe your course in detail..."
+                className="mt-1 min-h-[200px]"
+                required
+              />
+            </div>
+
+            <Separator />
+
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label>Learning Outcomes *</Label>
+                  <p className="text-sm text-muted-foreground">What students will learn</p>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => addItem('learningOutcomes')}
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add
+                </Button>
+              </div>
+
+              <div className="space-y-3">
+                {formData.learningOutcomes.map((item, index) => (
+                  <div key={index} className="flex items-center gap-2">
+                    <Input
+                      value={item}
+                      onChange={(e) => handleArrayChange(index, e.target.value, 'learningOutcomes')}
+                      placeholder="e.g., Build a complete web application"
+                      required={index === 0}
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => removeItem(index, 'learningOutcomes')}
+                      disabled={formData.learningOutcomes.length <= 1}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label>Requirements (Optional)</Label>
+                  <p className="text-sm text-muted-foreground">Prerequisites for this course</p>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => addItem('requirements')}
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add
+                </Button>
+              </div>
+
+              <div className="space-y-3">
+                {formData.requirements.map((item, index) => (
+                  <div key={index} className="flex items-center gap-2">
+                    <Input
+                      value={item}
+                      onChange={(e) => handleArrayChange(index, e.target.value, 'requirements')}
+                      placeholder="e.g., Basic programming knowledge"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => removeItem(index, 'requirements')}
+                      disabled={formData.requirements.length <= 1}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        );
+
+      case 2:
+        return (
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Thumbnail Upload */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Course Thumbnail *</CardTitle>
+                  <CardDescription>Upload an image for your course</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {formData.thumbnail ? (
+                      <div className="relative aspect-video rounded-lg overflow-hidden border">
+                        <img
+                          src={formData.thumbnail}
+                          alt="Course thumbnail"
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    ) : (
+                      <div className="aspect-video border-2 border-dashed rounded-lg flex flex-col items-center justify-center">
+                        <Upload className="h-12 w-12 text-muted-foreground mb-2" />
+                        <p className="text-sm text-muted-foreground">No thumbnail uploaded</p>
+                      </div>
+                    )}
+
+                    <div className="flex gap-2">
+                      <Input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => handleFileUpload(e, 'thumbnail')}
+                        className="hidden"
+                        id="thumbnail-upload"
+                      />
+                      <Button
+                        variant="outline"
+                        className="flex-1"
+                        onClick={() => document.getElementById('thumbnail-upload').click()}
+                      >
+                        <Upload className="h-4 w-4 mr-2" />
+                        {formData.thumbnail ? 'Change Image' : 'Upload Image'}
+                      </Button>
+
+                      {formData.thumbnail && (
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() => window.open(formData.thumbnail, '_blank')}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Preview Video Upload */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Preview Video (Optional)</CardTitle>
+                  <CardDescription>Optional course preview video</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {formData.previewVideo ? (
+                      <div className="relative aspect-video rounded-lg overflow-hidden border">
+                        <video
+                          src={formData.previewVideo}
+                          className="w-full h-full object-cover"
+                          controls
+                        />
+                      </div>
+                    ) : (
+                      <div className="aspect-video border-2 border-dashed rounded-lg flex flex-col items-center justify-center">
+                        <Upload className="h-12 w-12 text-muted-foreground mb-2" />
+                        <p className="text-sm text-muted-foreground">No video uploaded</p>
+                      </div>
+                    )}
+
+                    <div className="flex gap-2">
+                      <Input
+                        type="file"
+                        accept="video/*"
+                        onChange={(e) => handleFileUpload(e, 'previewVideo')}
+                        className="hidden"
+                        id="video-upload"
+                      />
+                      <Button
+                        variant="outline"
+                        className="flex-1"
+                        onClick={() => document.getElementById('video-upload').click()}
+                      >
+                        <Upload className="h-4 w-4 mr-2" />
+                        {formData.previewVideo ? 'Change Video' : 'Upload Video'}
+                      </Button>
+
+                      {formData.previewVideo && (
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() => window.open(formData.previewVideo, '_blank')}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        );
+
+      default:
+        return null;
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-[#fafafa] dark:bg-[#09090b] text-zinc-900 dark:text-zinc-50 pt-24 pb-20 px-4 transition-colors duration-300">
-      <div className="max-w-5xl mx-auto">
-        
-        {/* Management Header Tabs */}
-        {id && (
-          <div className="flex items-center gap-1 bg-zinc-100 dark:bg-zinc-900/50 p-1.5 rounded-2xl w-fit mb-10 border border-zinc-200 dark:border-zinc-800">
-             <button 
-                onClick={() => navigate(`/teacher/courses/${id}/edit`)}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest bg-white dark:bg-zinc-800 shadow-sm border border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-white"
-             >
-                <Settings className="size-3.5 text-orange-600" />
-                Management
-             </button>
-             <button 
-                onClick={() => navigate(`/teacher/courses/${id}/curriculum`)}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
-             >
-                <Layers className="size-3.5" />
-                Curriculum
-             </button>
-          </div>
-        )}
+    <div className="container max-w-4xl mx-auto py-8 px-4">
+      {/* Header */}
+      <div className="mb-8">
+        <div className="flex items-center gap-2 mb-2">
+          <Badge variant="outline">
+            {isEditing ? 'Editing Course' : 'Creating Course'}
+          </Badge>
+          <Badge variant="secondary">
+            Step {currentStep + 1} of {STEPS.length}
+          </Badge>
+        </div>
 
-        <button 
-          onClick={() => navigate('/teacher/dashboard')}
-          className="flex items-center gap-2 text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 mb-8 transition-all group font-medium text-sm"
-        >
-          <ChevronLeft className="size-4 group-hover:-translate-x-1 transition-transform" />
-          Back to Dashboard
-        </button>
+        <h1 className="text-3xl font-bold tracking-tight">
+          {isEditing ? 'Edit Course' : 'Create New Course'}
+        </h1>
+        <p className="text-muted-foreground mt-2">
+          {STEPS[currentStep].description}
+        </p>
+      </div>
 
-        <div className="flex flex-col lg:flex-row gap-10">
-          {/* Main Form Area */}
-          <div className="flex-1">
-            <div className="mb-10">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-orange-100 dark:bg-orange-950/30 text-orange-600 dark:text-orange-400 text-xs font-bold uppercase tracking-wider mb-4 border border-orange-200 dark:border-orange-900/50">
-                    <Sparkles className="size-3" />
-                    Course Architect
-                </div>
-                <h1 className="text-4xl font-extrabold tracking-tight mb-3">
-                    {id ? "Optimize" : "Assemble"} Your <span className="text-orange-600 underline decoration-orange-600/30 underline-offset-8">Curriculum</span>
-                </h1>
-                <p className="text-zinc-500 dark:text-zinc-400 max-w-2xl leading-relaxed">
-                    Set the foundation for your educational asset. High-quality metadata increases enrollment by up to 45%.
-                </p>
+      {/* Progress Bar */}
+      <div className="mb-8">
+        <div className="flex justify-between mb-2">
+          <span className="text-sm font-medium">Progress</span>
+          <span className="text-sm font-medium">{Math.round(progress)}%</span>
+        </div>
+        <Progress value={progress} className="h-2" />
+
+        {/* Step Indicators */}
+        <div className="flex justify-between mt-6">
+          {STEPS.map((step, index) => (
+            <div key={step.id} className="flex flex-col items-center">
+              <div className={`
+                w-8 h-8 rounded-full flex items-center justify-center mb-2
+                ${currentStep >= index
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-muted text-muted-foreground'
+                }
+              `}>
+                {index + 1}
+              </div>
+              <span className={`
+                text-sm font-medium
+                ${currentStep >= index ? 'text-foreground' : 'text-muted-foreground'}
+              `}>
+                {step.title}
+              </span>
             </div>
+          ))}
+        </div>
+      </div>
 
-            <form onSubmit={handleSubmit} className="space-y-10">
-              {/* Basic Information Section */}
-              <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-8 shadow-sm">
-                <div className="flex items-center gap-3 mb-8 pb-4 border-b border-zinc-100 dark:border-zinc-800">
-                    <div className="size-8 bg-zinc-100 dark:bg-zinc-800 rounded-lg flex items-center justify-center">
-                        <Info className="size-4 text-zinc-600 dark:text-zinc-400" />
-                    </div>
-                    <h2 className="text-lg font-bold">Core Specifications</h2>
-                </div>
-
-                <div className="space-y-6">
-                    <div className="space-y-2">
-                        <label className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">Course Identifier (Title)</label>
-                        <input 
-                            type="text" 
-                            name="title"
-                            required
-                            placeholder="e.g. Master Class: Advanced System Design"
-                            className="w-full px-4 py-3 bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-600/20 focus:border-orange-600 transition-all font-medium"
-                            value={formData.title}
-                            onChange={handleChange}
-                        />
-                    </div>
-
-                    <div className="space-y-2">
-                        <label className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">Operational Briefing (Description)</label>
-                        <textarea 
-                            name="description"
-                            required
-                            rows="6"
-                            placeholder="Provide a comprehensive breakdown of the course objectives and learning outcomes..."
-                            className="w-full px-4 py-3 bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-600/20 focus:border-orange-600 transition-all resize-none font-medium leading-relaxed"
-                            value={formData.description}
-                            onChange={handleChange}
-                        />
-                    </div>
-                </div>
-              </div>
-
-              {/* Categorization & Metadata */}
-              <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-8 shadow-sm">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <div className="space-y-6">
-                        <div className="flex items-center gap-3 mb-2">
-                            <Layers className="size-4 text-zinc-400" />
-                            <h3 className="text-sm font-bold uppercase tracking-wider text-zinc-500">Classification</h3>
-                        </div>
-                        
-                        <div className="space-y-4">
-                            <div className="space-y-2">
-                                <label className="text-xs font-bold text-zinc-500 uppercase">Sector</label>
-                                <select 
-                                    name="category"
-                                    required
-                                    className="w-full px-4 py-3 bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl focus:outline-none focus:border-orange-600 transition-all font-bold text-sm"
-                                    value={formData.category}
-                                    onChange={handleChange}
-                                >
-                                    <option value="">Select Category</option>
-                                    <option value="Web Development">Software Engineering</option>
-                                    <option value="Mobile Development">Mobile Systems</option>
-                                    <option value="Data Science">Artificial Intelligence</option>
-                                    <option value="Design">Digital Arts</option>
-                                    <option value="Marketing">Business Operations</option>
-                                </select>
-                            </div>
-
-                            <div className="space-y-2">
-                                <label className="text-xs font-bold text-zinc-500 uppercase">Proficiency Tier</label>
-                                <div className="flex gap-2 p-1 bg-zinc-100 dark:bg-zinc-950 rounded-xl">
-                                    {["Beginner", "Medium", "Advance"].map((lvl) => (
-                                        <button
-                                            key={lvl}
-                                            type="button"
-                                            onClick={() => setFormData({...formData, courseLevel: lvl})}
-                                            className={`flex-1 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
-                                                formData.courseLevel === lvl 
-                                                ? "bg-white dark:bg-zinc-800 text-orange-600 shadow-sm border border-zinc-200 dark:border-zinc-700" 
-                                                : "text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
-                                            }`}
-                                        >
-                                            {lvl}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="space-y-6">
-                        <div className="flex items-center gap-3 mb-2">
-                            <IndianRupee className="size-4 text-zinc-400" />
-                            <h3 className="text-sm font-bold uppercase tracking-wider text-zinc-500">Valuation</h3>
-                        </div>
-                        
-                        <div className="space-y-4">
-                            <div className="space-y-2">
-                                <label className="text-xs font-bold text-zinc-500 uppercase">Monetization (INR)</label>
-                                <div className="relative group">
-                                    <div className="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-zinc-400 group-focus-within:text-orange-600 transition-colors">₹</div>
-                                    <input 
-                                        type="number" 
-                                        name="coursePrice"
-                                        placeholder="0"
-                                        className="w-full pl-10 pr-4 py-3 bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-600/20 focus:border-orange-600 transition-all font-bold text-lg"
-                                        value={formData.coursePrice}
-                                        onChange={handleChange}
-                                    />
-                                </div>
-                                <p className="text-[10px] text-zinc-400 italic">Leave empty or 0 for community redistribution.</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-              </div>
-
-              {/* Action Bar */}
-              <div className="flex items-center gap-4 pt-4">
-                  <button 
-                    type="submit"
-                    disabled={isPending}
-                    className="flex-1 py-4 bg-orange-600 hover:bg-orange-700 disabled:bg-zinc-300 dark:disabled:bg-zinc-800 text-white font-bold uppercase tracking-widest rounded-xl flex items-center justify-center gap-3 transition-all shadow-lg shadow-orange-600/20 active:scale-[0.98]"
-                  >
-                    {isPending ? <Loader className="animate-spin size-5" /> : <Save className="size-5" />}
-                    {id ? "Commit Updates" : "Initialize Objective"}
-                  </button>
-              </div>
-            </form>
+      {/* Main Form */}
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle>{STEPS[currentStep].title}</CardTitle>
+          <CardDescription>
+            Complete all required fields to proceed
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="min-h-[400px]">
+            {renderStep()}
           </div>
+        </CardContent>
+      </Card>
 
-          {/* Side Panel: Media & Assets */}
-          <div className="w-full lg:w-80 shrink-0">
-            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 shadow-sm sticky top-28">
-                <div className="flex items-center gap-2 mb-6 uppercase tracking-tighter font-black text-xs text-zinc-400">
-                    <Layout className="size-3" />
-                    Visual Branding
-                </div>
+      {/* Navigation */}
+      <div className="flex items-center justify-between">
+        <div className="flex gap-2">
+          {isEditing && (
+            <Link to={`/teacher/courses/${id}/curriculum`}>
+              <Button variant="outline">
+                Manage Curriculum
+              </Button>
+            </Link>
+          )}
+          <Button
+            variant="ghost"
+            onClick={() => navigate('/teacher/courses')}
+          >
+            Cancel
+          </Button>
+        </div>
 
-                <div className="space-y-6">
-                    <div 
-                        className="relative group cursor-pointer"
-                        onClick={() => document.getElementById('thumbnail-input').click()}
-                    >
-                        <div className={`aspect-4/3 rounded-xl border-2 border-dashed flex flex-col items-center justify-center transition-all overflow-hidden bg-zinc-50 dark:bg-zinc-950 ${preview ? 'border-zinc-200 dark:border-zinc-800' : 'border-zinc-200 dark:border-zinc-800 hover:border-orange-500/50'}`}>
-                            {preview ? (
-                                <img src={preview} alt="Thumbnail" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                            ) : (
-                                <>
-                                    <div className="size-12 bg-white dark:bg-zinc-900 rounded-full flex items-center justify-center shadow-sm mb-3 group-hover:text-orange-600 transition-colors">
-                                        <Upload className="size-6" />
-                                    </div>
-                                    <p className="text-[10px] font-bold text-zinc-500 uppercase">Upload Cover</p>
-                                </>
-                            )}
-                            
-                            {preview && (
-                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                                    <p className="text-white text-xs font-bold uppercase tracking-widest">Change Image</p>
-                                </div>
-                            )}
-                        </div>
-                        <input 
-                            id="thumbnail-input"
-                            type="file" 
-                            className="hidden" 
-                            accept="image/*"
-                            onChange={handleThumbnailChange}
-                        />
-                    </div>
+        <div className="flex gap-3">
+          <Button
+            variant="outline"
+            onClick={prevStep}
+            disabled={currentStep === 0}
+            className="gap-2"
+          >
+            <ChevronLeft className="h-4 w-4" />
+            Previous
+          </Button>
 
-                    <div className="space-y-4">
-                        <div className="p-4 bg-orange-50 dark:bg-orange-950/20 rounded-xl border border-orange-100 dark:border-orange-900/30">
-                            <h4 className="text-xs font-bold text-orange-800 dark:text-orange-400 mb-1 flex items-center gap-1">
-                                <Sparkles className="size-3" />
-                                Pro Tip
-                            </h4>
-                            <p className="text-[10px] text-orange-700/80 dark:text-orange-400/80 leading-relaxed font-medium">
-                                Use a 16:9 high-contrast image (1280x720) with minimal text for maximum visibility in the explore feed.
-                            </p>
-                        </div>
-
-                        <div className="space-y-4 pt-4 border-t border-zinc-100 dark:border-zinc-800">
-                             <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                    <div className={`size-2 rounded-full ${currentCourse?.isPublished ? 'bg-green-500 animate-pulse' : 'bg-zinc-400'}`} />
-                                    <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Course Status</span>
-                                </div>
-                                <span className={`text-[10px] font-black uppercase tracking-widest ${currentCourse?.isPublished ? 'text-green-600' : 'text-zinc-500'}`}>
-                                    {currentCourse?.isPublished ? 'Live' : 'Draft'}
-                                </span>
-                             </div>
-
-                             <button 
-                                onClick={(e) => { e.preventDefault(); togglePublish(id, !currentCourse?.isPublished); }}
-                                className={`w-full h-12 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${
-                                    currentCourse?.isPublished 
-                                    ? "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 hover:bg-zinc-200 dark:hover:bg-zinc-700" 
-                                    : "bg-orange-600 text-white shadow-lg shadow-orange-600/20 hover:bg-orange-700"
-                                }`}
-                             >
-                                {currentCourse?.isPublished ? (
-                                    <><EyeOff className="size-4" /> Unpublish</>
-                                ) : (
-                                    <><Globe className="size-4" /> Publish Now</>
-                                )}
-                             </button>
-                        </div>
-
-                        <div className="space-y-2">
-                            <div className="flex items-center gap-2 text-zinc-500">
-                                <div className="size-1.5 rounded-full bg-green-500" />
-                                <span className="text-[10px] font-bold uppercase tracking-tight">System Status: Ready</span>
-                            </div>
-                            <div className="flex items-center gap-2 text-zinc-500">
-                                <div className="size-1.5 rounded-full bg-zinc-400" />
-                                <span className="text-[10px] font-bold uppercase tracking-tight">Auto-Save: Active</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+          {currentStep < STEPS.length - 1 ? (
+            <Button
+              onClick={nextStep}
+              className="gap-2"
+            >
+              Next Step
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          ) : (
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={handleSaveDraft}
+                disabled={isCreating || isUpdating}
+                className="gap-2"
+              >
+                <Save className="h-4 w-4" />
+                Save as Draft
+              </Button>
+              <Button
+                onClick={handlePublish}
+                disabled={isCreating || isUpdating}
+              >
+                {isCreating || isUpdating ? 'Publishing...' : (isEditing ? 'Update Course' : 'Publish Course')}
+              </Button>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </div>
