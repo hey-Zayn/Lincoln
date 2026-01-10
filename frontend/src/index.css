@@ -1,6 +1,60 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+
+
+/* Modern Professional Scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: gray #101010;
+}
+
+/* Webkit Browsers (Chrome, Safari, Edge) */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+  background-color: transparent;
+}
+
+::-webkit-scrollbar-track {
+  background: linear-gradient(to bottom, #f7fafc, #101010);
+  border-radius: 10px;
+  box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.1);
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(45deg, #667eea, #101010);
+  border-radius: 10px;
+  border: 2px solid #f7fafc;
+  transition: all 0.3s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(45deg, #5a67d8, #101010);
+  transform: scale(1.05);
+}
+
+::-webkit-scrollbar-thumb:active {
+  background: linear-gradient(45deg, #4c51bf, #101010);
+}
+
+::-webkit-scrollbar-corner {
+  background: #f7fafc;
+}
+
+/* Smooth scrolling for the entire page */
+html {
+  scroll-behavior: smooth;
+}
+
+/* For Firefox - Smooth scrolling */
+* {
+  scroll-behavior: smooth;
+}
+
+
+
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {

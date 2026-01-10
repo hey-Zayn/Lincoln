@@ -1,5 +1,5 @@
 import React from 'react'
-import { Bell, ChevronDown, Home, LogOut, Settings, User } from 'lucide-react'
+import { Bell, ChevronDown, Home, LogOut, Monitor, Moon, Settings, Sun, User } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
@@ -12,11 +12,13 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { useAuthStore } from '../../../../store/useAuthStore'
+import { useThemeStore } from '../../../../store/useThemeStore'
 import { Link } from 'react-router-dom'
 import { SidebarTrigger } from "@/components/ui/sidebar"
 
 const TeacherTopbar = () => {
     const { logout, authUser } = useAuthStore();
+    const { theme, setTheme } = useThemeStore();
     return (
         <div className='sticky top-0 z-30 w-full h-16 flex items-center justify-between px-6 border-b border-zinc-900/50 bg-zinc-950/50 backdrop-blur-md'>
             <div className='flex items-center gap-3'>
@@ -33,6 +35,28 @@ const TeacherTopbar = () => {
                 <Button variant="ghost" size="icon" className='text-zinc-400 hover:text-white hover:bg-white/5 rounded-md transition-all'>
                     <Bell className="size-4" />
                 </Button>
+
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className='text-zinc-400 hover:text-white hover:bg-white/5 rounded-md transition-all'>
+                            {theme === 'light' ? <Sun className="size-4" /> : theme === 'dark' ? <Moon className="size-4" /> : <Monitor className="size-4" />}
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent className="w-36 bg-zinc-950 border-zinc-800 text-zinc-100 shadow-2xl rounded-md p-1 mt-2" align="end">
+                        <DropdownMenuItem onClick={() => setTheme('light')} className='gap-3 focus:bg-white/5 focus:text-white cursor-pointer px-2 py-1.5 rounded-md'>
+                            <Sun className="size-4 text-orange-500" />
+                            <span className='text-sm font-medium'>Light</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setTheme('dark')} className='gap-3 focus:bg-white/5 focus:text-white cursor-pointer px-2 py-1.5 rounded-md'>
+                            <Moon className="size-4 text-blue-500" />
+                            <span className='text-sm font-medium'>Dark</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setTheme('system')} className='gap-3 focus:bg-white/5 focus:text-white cursor-pointer px-2 py-1.5 rounded-md'>
+                            <Monitor className="size-4 text-zinc-500" />
+                            <span className='text-sm font-medium'>System</span>
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
 
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>

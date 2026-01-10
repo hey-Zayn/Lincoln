@@ -1,61 +1,91 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useCourseStore } from '../../../../store/useCourseStore';
-import { Button } from '../../../../components/ui/button';
-import { Input } from '../../../../components/ui/input';
-import { Label } from '../../../../components/ui/label';
-import { 
-  ChevronLeft, 
-  Save, 
-  BookOpen, 
-  Loader,
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
+import { Progress } from "@/components/ui/progress";
+import {
+  ChevronLeft,
+  Loader2,
   Plus,
-  Eye,
-  EyeOff,
   Trash2,
   Edit,
-  PlayCircle,
-  GripVertical,
-  Settings,
-  MoreVertical,
-  PlusCircle,
-  ChevronRight,
+  Eye,
+  EyeOff,
   FileVideo,
-  ExternalLink,
   Lock,
   Globe,
-  Layers,
-  Layout
+  MoreVertical,
+  ExternalLink,
+  Upload,
+  CheckCircle2,
+  XCircle,
+  FolderPlus,
+  Video,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { AnimatePresence, motion } from 'framer-motion';
 import axiosInstance from '../../../../axios/axiosInstance';
 
-const CreateCourseLectures = () => {
+const CourseLecturesPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { 
-    getCourseById, 
-    currentCourse, 
-    isLoading, 
-    togglePublish,
-    addSection,
-    updateSection,
-    deleteSection,
-    createLecture 
-  } = useCourseStore();
+  const { getCourseById, currentCourse, isLoading, togglePublish } = useCourseStore();
 
-  const [activeSection, setActiveSection] = useState(null);
-  const [showLectureModal, setShowLectureModal] = useState(false);
-  const [showSectionModal, setShowSectionModal] = useState(false);
+  const [sections, setSections] = useState([]);
   const [editingSection, setEditingSection] = useState(null);
-  const [currentLecture, setCurrentLecture] = useState(null);
-  const [sectionForm, setSectionForm] = useState({ sectionTitle: "" });
+  const [editingLecture, setEditingLecture] = useState(null);
+  const [showSectionDialog, setShowSectionDialog] = useState(false);
+  const [showLectureDialog, setShowLectureDialog] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [isUploading, setIsUploading] = useState(false);
+
+  const [sectionForm, setSectionForm] = useState({
+    title: '',
+  });
+
   const [lectureForm, setLectureForm] = useState({
-    title: "",
-    description: "",
-    videoUrl: "",
-    isPreviewFree: false
+    title: '',
+    description: '',
+    videoFile: null,
+    videoUrl: '',
+    isPreviewFree: false,
   });
 
   useEffect(() => {
@@ -64,463 +94,624 @@ const CreateCourseLectures = () => {
     }
   }, [id, getCourseById]);
 
+  useEffect(() => {
+    // Load sections when course is loaded
+    if (currentCourse?._id) {
+      fetchSections();
+    }
+  }, [currentCourse]);
+
+  const fetchSections = async () => {
+    try {
+      const response = await axiosInstance.get(`/sections/course/${id}`);
+      setSections(response.data.sections || []);
+    } catch (error) {
+      console.error('Failed to fetch sections:', error);
+      setSections([]);
+    }
+  };
+
   const handleTogglePublish = async () => {
     if (!currentCourse) return;
-    await togglePublish(id, !currentCourse.isPublished);
+    try {
+      await togglePublish(id, !currentCourse.isPublished);
+      toast.success(`Course ${currentCourse.isPublished ? 'unpublished' : 'published'} successfully`);
+    } catch (error) {
+      toast.error('Failed to update course status');
+    }
   };
 
   const handleSectionSubmit = async (e) => {
     e.preventDefault();
-    let success;
-    if (editingSection) {
-      success = await updateSection(id, editingSection._id, sectionForm.sectionTitle);
-    } else {
-      success = await addSection(id, sectionForm.sectionTitle);
-    }
-    if (success) {
-      setShowSectionModal(false);
+    try {
+      if (editingSection) {
+        await axiosInstance.put(`/sections/${editingSection._id}`, {
+          sectionTitle: sectionForm.title,
+        });
+        toast.success('Section updated successfully');
+      } else {
+        await axiosInstance.post('/sections', {
+          courseId: id,
+          sectionTitle: sectionForm.title,
+        });
+        toast.success('Section created successfully');
+      }
+
+      setShowSectionDialog(false);
       setEditingSection(null);
-      setSectionForm({ sectionTitle: "" });
+      setSectionForm({ title: '' });
+      fetchSections();
+    } catch (error) {
+      toast.error('Failed to save section');
     }
   };
 
-  const openLectureModal = (lecture = null, sectionId = null) => {
-    setActiveSection(sectionId);
-    if (lecture) {
-      setCurrentLecture(lecture);
-      setLectureForm({
-        title: lecture.title,
-        description: lecture.description || "",
-        videoUrl: lecture.videoUrl || "",
-        isPreviewFree: lecture.isPreviewFree || false
-      });
-    } else {
-      setCurrentLecture(null);
-      setLectureForm({
-        title: "",
-        description: "",
-        videoUrl: "",
-        isPreviewFree: false
-      });
+  const handleDeleteSection = async (sectionId) => {
+    if (!window.confirm('Are you sure you want to delete this section? All lectures in this section will also be deleted.')) {
+      return;
     }
-    setShowLectureModal(true);
+
+    try {
+      await axiosInstance.delete(`/sections/${sectionId}`);
+      toast.success('Section deleted successfully');
+      fetchSections();
+    } catch (error) {
+      toast.error('Failed to delete section');
+    }
+  };
+
+  const handleVideoUpload = async (file) => {
+    if (!file) return null;
+
+    const formData = new FormData();
+    formData.append('video', file);
+
+    try {
+      setIsUploading(true);
+      setUploadProgress(0);
+
+      const response = await axiosInstance.post('/lectures/upload', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+        onUploadProgress: (progressEvent) => {
+          const percentCompleted = Math.round(
+            (progressEvent.loaded * 100) / progressEvent.total
+          );
+          setUploadProgress(percentCompleted);
+        },
+      });
+
+      setIsUploading(false);
+      setUploadProgress(100);
+      return response.data.videoUrl;
+    } catch (error) {
+      setIsUploading(false);
+      toast.error('Failed to upload video');
+      return null;
+    }
   };
 
   const handleLectureSubmit = async (e) => {
     e.preventDefault();
-    if (currentLecture) {
-        // Edit logic (via store or direct)
-        try {
-            await axiosInstance.put(`/courses/lecture/update/${currentLecture._id}`, lectureForm);
-            toast.success("Lecture updated");
-            getCourseById(id);
-        } catch (err) {
-            console.error(err);
-            toast.error("Failed to update lecture");
-        }
-    } else {
-        const payload = { ...lectureForm, sectionId: activeSection };
-        const lecture = await createLecture(id, payload);
-        if (lecture) {
-            getCourseById(id);
-        }
+
+    try {
+      let videoUrl = lectureForm.videoUrl;
+
+      // Upload video file if provided
+      if (lectureForm.videoFile) {
+        videoUrl = await handleVideoUpload(lectureForm.videoFile);
+        if (!videoUrl) return;
+      }
+
+      if (editingLecture) {
+        // Update existing lecture
+        await axiosInstance.put(`/lectures/${editingLecture._id}`, {
+          title: lectureForm.title,
+          description: lectureForm.description,
+          videoUrl: videoUrl,
+          isPreviewFree: lectureForm.isPreviewFree,
+        });
+        toast.success('Lecture updated successfully');
+      } else {
+        // Create new lecture
+        await axiosInstance.post('/lectures', {
+          title: lectureForm.title,
+          description: lectureForm.description,
+          videoUrl: videoUrl,
+          isPreviewFree: lectureForm.isPreviewFree,
+          sectionId: lectureForm.sectionId,
+        });
+        toast.success('Lecture created successfully');
+      }
+
+      setShowLectureDialog(false);
+      setEditingLecture(null);
+      setLectureForm({
+        title: '',
+        description: '',
+        videoFile: null,
+        videoUrl: '',
+        isPreviewFree: false,
+      });
+      fetchSections();
+    } catch (error) {
+      toast.error('Failed to save lecture');
     }
-    setShowLectureModal(false);
   };
 
   const handleDeleteLecture = async (lectureId) => {
-      if (!window.confirm("Delete this lecture permanently?")) return;
-      try {
-          await axiosInstance.delete(`/courses/lecture/delete/${lectureId}`);
-          toast.success("Lecture deleted");
-          getCourseById(id);
-      } catch (err) {
-          console.error(err);
-          toast.error("Deletion failed");
-      }
+    if (!window.confirm('Are you sure you want to delete this lecture?')) {
+      return;
+    }
+
+    try {
+      await axiosInstance.delete(`/lectures/${lectureId}`);
+      toast.success('Lecture deleted successfully');
+      fetchSections();
+    } catch (error) {
+      toast.error('Failed to delete lecture');
+    }
+  };
+
+  const openSectionDialog = (section = null) => {
+    setEditingSection(section);
+    setSectionForm({
+      title: section?.sectionTitle || '',
+    });
+    setShowSectionDialog(true);
+  };
+
+  const openLectureDialog = (lecture = null, sectionId = null) => {
+    setEditingLecture(lecture);
+    setLectureForm({
+      title: lecture?.title || '',
+      description: lecture?.description || '',
+      videoFile: null,
+      videoUrl: lecture?.videoUrl || '',
+      isPreviewFree: lecture?.isPreviewFree || false,
+      sectionId: sectionId || lecture?.sectionId || '',
+    });
+    setShowLectureDialog(true);
   };
 
   if (isLoading || !currentCourse) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-zinc-50 dark:bg-zinc-950">
-        <Loader className="size-8 animate-spin text-orange-600" />
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin" />
       </div>
     );
   }
 
+  const totalLectures = Array.isArray(sections) ? sections.reduce((total, section) =>
+    total + (section.lectures?.length || 0), 0
+  ) : 0;
+
   return (
-    <div className="min-h-screen bg-[#fafafa] dark:bg-[#09090b] text-zinc-900 dark:text-zinc-50 pt-24 pb-20 transition-colors duration-300">
-      <div className="max-w-7xl mx-auto px-4 md:px-6">
-        
-        {/* Management Header Tabs */}
-        <div className="flex items-center gap-1 bg-zinc-100 dark:bg-zinc-900/50 p-1.5 rounded-2xl w-fit mb-10 border border-zinc-200 dark:border-zinc-800">
-             <button 
-                onClick={() => navigate(`/teacher/courses/${id}/edit`)}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
-             >
-                <Settings className="size-3.5" />
-                Management
-             </button>
-             <button 
-                onClick={() => navigate(`/teacher/courses/${id}/curriculum`)}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest bg-white dark:bg-zinc-800 shadow-sm border border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-white"
-             >
-                <Layers className="size-3.5 text-orange-600" />
-                Curriculum
-             </button>
-        </div>
+    <div className="container max-w-7xl mx-auto py-8 px-4">
+      {/* Header */}
+      <div className="mb-8">
+        <Button
+          variant="ghost"
+          onClick={() => navigate('/teacher/courses')}
+          className="mb-4 gap-2"
+        >
+          <ChevronLeft className="h-4 w-4" />
+          Back to Courses
+        </Button>
 
-        {/* Header Action Bar */}
-        <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <button 
-                onClick={() => navigate('/teacher/dashboard')}
-                className="flex items-center gap-2 text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 mb-4 transition-all group font-medium text-sm"
-            >
-                <ChevronLeft className="size-4 group-hover:-translate-x-1 transition-transform" />
-                Back to Dashboard
-            </button>
-            <div className="flex items-center gap-3">
-               <h1 className="text-3xl font-extrabold tracking-tight">Curriculum <span className="text-zinc-400 font-medium">Builder</span></h1>
-               <div className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest ${currentCourse?.isPublished ? 'bg-green-100 dark:bg-green-950/30 text-green-600 border border-green-200 dark:border-green-900/50' : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500 border border-zinc-200 dark:border-zinc-700'}`}>
-                {currentCourse?.isPublished ? 'Live' : 'Draft'}
-               </div>
+            <div className="flex items-center gap-3 mb-2">
+              <h1 className="text-3xl font-bold tracking-tight">Course Curriculum</h1>
+              <Badge variant={currentCourse.isPublished ? "default" : "secondary"}>
+                {currentCourse.isPublished ? 'Published' : 'Draft'}
+              </Badge>
             </div>
-            <p className="text-zinc-500 dark:text-zinc-400 mt-1">Design the learning path by organizing modules and assets.</p>
+            <p className="text-muted-foreground">
+              {currentCourse.title} • {totalLectures} lectures • {sections.length} sections
+            </p>
           </div>
 
-          <div className="flex items-center gap-3">
-             <Button
-                variant="outline"
-                className="h-11 px-6 border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-900 font-bold uppercase tracking-widest text-[10px]"
-                onClick={() => window.open(`/courses/${id}`, '_blank')}
-             >
-                <ExternalLink className="size-4 mr-2" />
-                Preview
-             </Button>
-             <Button
-                variant={currentCourse?.isPublished ? "destructive" : "default"}
-                className={`h-11 px-8 font-bold uppercase tracking-widest text-[10px] shadow-lg ${!currentCourse?.isPublished ? 'bg-orange-600 hover:bg-orange-700 shadow-orange-600/20' : ''}`}
-                onClick={handleTogglePublish}
-             >
-                {currentCourse?.isPublished ? (
-                    <><EyeOff className="size-4 mr-2" /> Unpublish</>
-                ) : (
-                    <><Globe className="size-4 mr-2" /> Publish Course</>
-                )}
-             </Button>
-          </div>
-        </header>
-
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-10 items-start">
-          
-          {/* Left Column: Stats & Meta */}
-          <aside className="lg:col-span-1 space-y-6">
-            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 shadow-sm">
-                <div className="flex items-center gap-2 mb-6 font-black text-[10px] uppercase tracking-tighter text-zinc-400">
-                    <Layout className="size-3" />
-                    Structure Metrics
-                </div>
-                <div className="space-y-4">
-                    <div className="flex justify-between items-end border-b border-zinc-50 dark:border-zinc-800 pb-3">
-                        <span className="text-sm font-medium text-zinc-500">Modules</span>
-                        <span className="text-xl font-bold tracking-tight">{currentCourse?.sections?.length || 0}</span>
-                    </div>
-                    <div className="flex justify-between items-end border-b border-zinc-50 dark:border-zinc-800 pb-3">
-                        <span className="text-sm font-medium text-zinc-500">Lectures</span>
-                        <span className="text-xl font-bold tracking-tight">
-                            {(currentCourse?.sections || []).reduce((acc, sec) => acc + (sec.lectures?.length || 0), 0)}
-                        </span>
-                    </div>
-                </div>
-
-                <div className="space-y-4 pt-6 border-t border-zinc-50 dark:border-zinc-800 mt-4">
-                     <button 
-                        onClick={() => {
-                            if (currentCourse?.sections?.length === 0) {
-                                addSection(id, "Course Introduction").then(() => {
-                                    getCourseById(id);
-                                    toast.info("Created initial module for you");
-                                });
-                            } else {
-                                openLectureModal(null, currentCourse.sections[0]._id);
-                            }
-                        }}
-                        className="w-full h-12 bg-orange-600/10 hover:bg-orange-600/20 text-orange-600 dark:text-orange-400 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2"
-                     >
-                        <PlusCircle className="size-4" />
-                        Quick Add Lecture
-                     </button>
-
-                     <button 
-                        onClick={handleTogglePublish}
-                        className={`w-full h-12 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all hide-on-mobile flex items-center justify-center gap-2 ${
-                            currentCourse?.isPublished 
-                            ? "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 hover:bg-zinc-200 dark:hover:bg-zinc-700" 
-                            : "bg-orange-600 text-white shadow-lg shadow-orange-600/20 hover:bg-orange-700"
-                        }`}
-                     >
-                        {currentCourse?.isPublished ? (
-                            <><EyeOff className="size-4" /> Unpublish</>
-                        ) : (
-                            <><Globe className="size-4" /> Publish Now</>
-                        )}
-                     </button>
-                </div>
-            </div>
-
-            <Button 
-                onClick={() => { setEditingSection(null); setSectionForm({ sectionTitle: "" }); setShowSectionModal(true); }}
-                className="w-full h-14 bg-zinc-900 dark:bg-zinc-50 text-white dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-zinc-200 font-bold uppercase tracking-widest text-[10px] rounded-2xl"
+          <div className="flex gap-3">
+            <Button
+              variant="outline"
+              onClick={() => window.open(`/courses/${id}`, '_blank')}
+              className="gap-2"
             >
-                <PlusCircle className="size-5 mr-3 text-orange-500" />
-                Add New Module
+              <Eye className="h-4 w-4" />
+              Preview
             </Button>
-          </aside>
-
-          {/* Right Column: Curriculum List */}
-          <main className="lg:col-span-3 space-y-6">
-             <AnimatePresence mode="popLayout">
-                {currentCourse?.sections?.length === 0 ? (
-                    <motion.div 
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="bg-white dark:bg-zinc-900 border-2 border-dashed border-zinc-200 dark:border-zinc-800 rounded-2xl py-24 flex flex-col items-center justify-center text-center"
-                    >
-                        <div className="size-16 bg-zinc-50 dark:bg-zinc-800 rounded-full flex items-center justify-center mb-6">
-                            <BookOpen className="size-8 text-zinc-300" />
-                        </div>
-                        <h3 className="text-xl font-bold mb-2">Initialize Your Curriculum</h3>
-                        <p className="text-zinc-500 max-w-sm">Create your first module (section) to start adding instructional content.</p>
-                        <Button 
-                            variant="link" 
-                            className="mt-4 text-orange-600 font-bold uppercase tracking-widest text-[10px]"
-                            onClick={() => setShowSectionModal(true)}
-                        >
-                            Start Building Now
-                        </Button>
-                    </motion.div>
-                ) : (
-                    currentCourse.sections.map((section, sIndex) => (
-                        <motion.div 
-                            key={section._id}
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl overflow-hidden shadow-sm shadow-black/5"
-                        >
-                            {/* Section Header */}
-                            <div className="p-6 border-b border-zinc-100 dark:border-zinc-800 flex items-center justify-between bg-zinc-50/30 dark:bg-zinc-800/20">
-                                <div className="flex items-center gap-4">
-                                    <div className="size-10 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl flex items-center justify-center font-bold text-zinc-400">
-                                       {String(sIndex + 1).padStart(2, '0')}
-                                    </div>
-                                    <div>
-                                        <h3 className="font-extrabold text-lg tracking-tight uppercase">{section.sectionTitle}</h3>
-                                        <p className="text-xs text-zinc-500 font-medium">{section.lectures?.length || 0} Lectures Managed</p>
-                                    </div>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <Button size="icon" variant="ghost" className="rounded-lg h-9 w-9 text-zinc-400 hover:text-orange-600 transition-colors" onClick={() => { setEditingSection(section); setSectionForm({ sectionTitle: section.sectionTitle }); setShowSectionModal(true); }}>
-                                        <Edit className="size-4" />
-                                    </Button>
-                                    <Button size="icon" variant="ghost" className="rounded-lg h-9 w-9 text-zinc-400 hover:text-red-600 transition-colors" onClick={() => deleteSection(id, section._id)}>
-                                        <Trash2 className="size-4" />
-                                    </Button>
-                                    <div className="w-px h-4 bg-zinc-200 dark:bg-zinc-800 mx-2" />
-                                    <Button 
-                                        onClick={() => openLectureModal(null, section._id)}
-                                        className="bg-orange-600/10 hover:bg-orange-600/20 text-orange-600 dark:text-orange-400 border-none h-9 px-4 rounded-xl font-bold uppercase tracking-widest text-[9px]"
-                                    >
-                                        <Plus className="size-3 mr-2" />
-                                        Add Lecture
-                                    </Button>
-                                </div>
-                            </div>
-
-                            {/* Lectures List */}
-                            <div className="p-6">
-                                {section.lectures?.length === 0 ? (
-                                    <div className="py-10 text-center">
-                                        <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest">No Lessons Available</p>
-                                    </div>
-                                ) : (
-                                    <div className="space-y-3">
-                                        {section.lectures.map((lecture) => (
-                                            <div 
-                                                key={lecture._id}
-                                                className="group flex items-center justify-between p-4 bg-zinc-50/50 dark:bg-zinc-950/30 border border-zinc-100 dark:border-zinc-800 rounded-xl hover:border-orange-500/30 transition-all"
-                                            >
-                                                <div className="flex items-center gap-4">
-                                                    <div className="cursor-grab active:cursor-grabbing text-zinc-300 dark:text-zinc-700">
-                                                        <GripVertical className="size-4" />
-                                                    </div>
-                                                    <div className="size-8 rounded-lg bg-orange-600 text-white flex items-center justify-center">
-                                                        <FileVideo className="size-4" />
-                                                    </div>
-                                                    <div>
-                                                        <h4 className="text-sm font-bold tracking-tight">{lecture.title}</h4>
-                                                        <div className="flex items-center gap-3 mt-1">
-                                                            {lecture.isPreviewFree ? (
-                                                                <span className="flex items-center gap-1 text-[9px] font-black uppercase text-green-500"><Globe className="size-2.5" /> Free Access</span>
-                                                            ) : (
-                                                                <span className="flex items-center gap-1 text-[9px] font-black uppercase text-zinc-400"><Lock className="size-2.5" /> Locked</span>
-                                                            )}
-                                                            <span className="text-[9px] text-zinc-400 font-bold uppercase">Public ID: {lecture.publicId || 'N/A'}</span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div className="flex items-center gap-1 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
-                                                    <Button size="icon" variant="ghost" className="h-8 w-8 rounded-lg" onClick={() => openLectureModal(lecture, section._id)}>
-                                                        <Edit className="size-3.5" />
-                                                    </Button>
-                                                    <Button size="icon" variant="ghost" className="h-8 w-8 rounded-lg text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/10" onClick={() => handleDeleteLecture(lecture._id)}>
-                                                        <Trash2 className="size-3.5" />
-                                                    </Button>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-                        </motion.div>
-                    ))
-                )}
-             </AnimatePresence>
-          </main>
+            <Button
+              onClick={handleTogglePublish}
+              variant={currentCourse.isPublished ? "destructive" : "default"}
+              className="gap-2"
+            >
+              {currentCourse.isPublished ? (
+                <>
+                  <EyeOff className="h-4 w-4" />
+                  Unpublish
+                </>
+              ) : (
+                <>
+                  <Globe className="h-4 w-4" />
+                  Publish
+                </>
+              )}
+            </Button>
+          </div>
         </div>
       </div>
 
-      {/* Section Modal */}
-      {showSectionModal && (
-          <div className="fixed inset-0 bg-[#09090b]/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-              <motion.div 
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="bg-white dark:bg-zinc-900 rounded-3xl shadow-2xl border border-zinc-200 dark:border-zinc-800 w-full max-w-md overflow-hidden"
-              >
-                  <div className="p-8 pb-4">
-                      <h2 className="text-2xl font-extrabold tracking-tight">{editingSection ? "Optimize Module" : "Assemble Module"}</h2>
-                      <p className="text-zinc-500 text-sm mt-1">Define a logical organizational unit for your curriculum.</p>
-                  </div>
-                  <form onSubmit={handleSectionSubmit} className="p-8 pt-4 space-y-6">
-                      <div className="space-y-2">
-                          <Label className="text-xs font-bold uppercase text-zinc-400">Section Identity</Label>
-                          <Input 
-                            autoFocus
-                            placeholder="e.g. Fundamental Concepts"
-                            className="h-12 rounded-xl bg-zinc-50 dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800"
-                            value={sectionForm.sectionTitle}
-                            onChange={(e) => setSectionForm({ sectionTitle: e.target.value })}
-                            required
-                          />
-                      </div>
-                      <div className="flex gap-3">
-                          <Button variant="outline" type="button" onClick={() => setShowSectionModal(false)} className="flex-1 h-12 rounded-xl font-bold uppercase tracking-widest text-[10px]">Cancel</Button>
-                          <Button type="submit" className="flex-1 h-12 rounded-xl bg-orange-600 hover:bg-orange-700 font-bold uppercase tracking-widest text-[10px] text-white">
-                            {editingSection ? "Update Module" : "Create Module"}
-                          </Button>
-                      </div>
-                  </form>
-              </motion.div>
-          </div>
-      )}
+      {/* Stats Overview */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Sections
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{sections.length}</div>
+          </CardContent>
+        </Card>
 
-      {/* Lecture Modal */}
-      {showLectureModal && (
-        <div className="fixed inset-0 bg-[#09090b]/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="bg-white dark:bg-zinc-900 rounded-3xl shadow-2xl border border-zinc-200 dark:border-zinc-800 w-full max-w-xl overflow-hidden max-h-[90vh] flex flex-col"
-          >
-            <div className="p-8 pb-4 border-b border-zinc-100 dark:border-zinc-800">
-               <div className="flex items-center gap-3">
-                  <div className="size-10 bg-orange-600 text-white rounded-xl flex items-center justify-center">
-                    <FileVideo className="size-5" />
-                  </div>
-                  <div>
-                    <h2 className="text-2xl font-extrabold tracking-tight">{currentLecture ? "Edit Knowledge Asset" : "Deploy Asset"}</h2>
-                    <p className="text-zinc-500 text-xs mt-0.5 uppercase font-bold tracking-widest">Configuration Interface</p>
-                  </div>
-               </div>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Total Lectures
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{totalLectures}</div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Free Previews
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {Array.isArray(sections) ? sections.reduce((total, section) =>
+                total + (section.lectures?.filter(l => l.isPreviewFree)?.length || 0), 0
+              ) : 0}
             </div>
-            
-            <form onSubmit={handleLectureSubmit} className="p-8 space-y-6 overflow-y-auto">
-              <div className="space-y-2">
-                <Label className="text-xs font-bold uppercase text-zinc-400">Asset Title</Label>
-                <Input
-                  required
-                  placeholder="e.g. Advanced State Persistence Patterns"
-                  className="h-12 rounded-xl bg-zinc-50 dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800"
-                  value={lectureForm.title}
-                  onChange={(e) => setLectureForm({...lectureForm, title: e.target.value})}
-                />
-              </div>
+          </CardContent>
+        </Card>
+      </div>
 
-              <div className="space-y-2">
-                <Label className="text-xs font-bold uppercase text-zinc-400">Knowledge Description</Label>
-                <textarea
-                  rows="3"
-                  placeholder="A brief summary of what students will achieve in this lesson..."
-                  className="w-full px-4 py-3 bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-600/20 focus:border-orange-600 transition-all text-sm resize-none"
-                  value={lectureForm.description}
-                  onChange={(e) => setLectureForm({...lectureForm, description: e.target.value})}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label className="text-xs font-bold uppercase text-zinc-400">Stream Source (Video URL)</Label>
-                <div className="relative">
-                   <Input
-                    type="url"
-                    placeholder="https://cloud.cdn.com/assets/video-241"
-                    className="h-12 pl-10 rounded-xl bg-zinc-50 dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800"
-                    value={lectureForm.videoUrl}
-                    onChange={(e) => setLectureForm({...lectureForm, videoUrl: e.target.value})}
+      <div className="flex gap-4 mb-6">
+        <Dialog open={showSectionDialog} onOpenChange={setShowSectionDialog}>
+          <DialogTrigger asChild>
+            <Button className="gap-2">
+              <FolderPlus className="h-4 w-4" />
+              Add Section
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>
+                {editingSection ? 'Edit Section' : 'Create New Section'}
+              </DialogTitle>
+              <DialogDescription>
+                Sections help organize your course content into logical groups.
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleSectionSubmit}>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label htmlFor="title">Section Title</Label>
+                  <Input
+                    id="title"
+                    value={sectionForm.title}
+                    onChange={(e) => setSectionForm({ title: e.target.value })}
+                    placeholder="e.g., Introduction to React"
+                    required
                   />
-                  <div className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400">
-                    <Globe className="size-4" />
-                  </div>
                 </div>
               </div>
-
-              <div className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-950 rounded-2xl border border-zinc-100 dark:border-zinc-800">
-                  <div className="flex items-center gap-3">
-                     <div className={`p-2 rounded-lg ${lectureForm.isPreviewFree ? 'bg-green-100 text-green-600' : 'bg-zinc-200 text-zinc-500'}`}>
-                        {lectureForm.isPreviewFree ? <Globe className="size-4" /> : <Lock className="size-4" />}
-                     </div>
-                     <div>
-                        <p className="text-sm font-bold">Public Accessibility</p>
-                        <p className="text-[10px] text-zinc-500 font-medium">Visible to non-enrolled students</p>
-                     </div>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={lectureForm.isPreviewFree}
-                    onChange={(e) => setLectureForm({...lectureForm, isPreviewFree: e.target.checked})}
-                    className="size-5 rounded-lg border-zinc-300 text-orange-600 focus:ring-orange-600"
-                  />
-              </div>
-
-              <div className="flex gap-3 pt-4 border-t border-zinc-100 dark:border-zinc-800">
+              <DialogFooter>
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => setShowLectureModal(false)}
-                  className="flex-1 h-12 rounded-xl font-bold uppercase tracking-widest text-[10px]"
+                  onClick={() => setShowSectionDialog(false)}
                 >
                   Cancel
                 </Button>
-                <Button type="submit" className="flex-1 h-12 rounded-xl bg-orange-600 hover:bg-orange-700 font-bold uppercase tracking-widest text-[10px] text-white shadow-lg shadow-orange-600/20">
-                  {currentLecture ? "Push Changes" : "Deploy Asset"}
+                <Button type="submit">
+                  {editingSection ? 'Update Section' : 'Create Section'}
                 </Button>
-              </div>
+              </DialogFooter>
             </form>
-          </motion.div>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={showLectureDialog} onOpenChange={setShowLectureDialog}>
+          <DialogTrigger asChild>
+            <Button variant="outline" className="gap-2">
+              <Video className="h-4 w-4" />
+              Add Lecture
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>
+                {editingLecture ? 'Edit Lecture' : 'Create New Lecture'}
+              </DialogTitle>
+              <DialogDescription>
+                Add a video lecture to your course. You can upload a video file or provide a video URL.
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleLectureSubmit}>
+              <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto">
+                <div className="space-y-2">
+                  <Label htmlFor="lecture-title">Lecture Title</Label>
+                  <Input
+                    id="lecture-title"
+                    value={lectureForm.title}
+                    onChange={(e) => setLectureForm({ ...lectureForm, title: e.target.value })}
+                    placeholder="e.g., Introduction to Components"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="lecture-description">Description (Optional)</Label>
+                  <Textarea
+                    id="lecture-description"
+                    value={lectureForm.description}
+                    onChange={(e) => setLectureForm({ ...lectureForm, description: e.target.value })}
+                    placeholder="Brief description of what students will learn in this lecture..."
+                    rows={3}
+                  />
+                </div>
+
+                <div className="space-y-4">
+                  <Label>Video Content</Label>
+
+                  {/* File Upload */}
+                  <div className="space-y-2">
+                    <Label htmlFor="video-upload" className="text-sm font-medium">
+                      Upload Video File
+                    </Label>
+                    <div className="flex gap-2">
+                      <Input
+                        id="video-upload"
+                        type="file"
+                        accept="video/*"
+                        onChange={(e) => setLectureForm({
+                          ...lectureForm,
+                          videoFile: e.target.files[0],
+                          videoUrl: ''
+                        })}
+                        className="cursor-pointer"
+                      />
+                    </div>
+                    {lectureForm.videoFile && (
+                      <div className="text-sm text-muted-foreground">
+                        Selected: {lectureForm.videoFile.name}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="relative">
+                    <div className="absolute inset-0 flex items-center">
+                      <span className="w-full border-t" />
+                    </div>
+                    <div className="relative flex justify-center text-xs uppercase">
+                      <span className="bg-background px-2 text-muted-foreground">OR</span>
+                    </div>
+                  </div>
+
+                  {/* Video URL */}
+                  <div className="space-y-2">
+                    <Label htmlFor="video-url" className="text-sm font-medium">
+                      Video URL
+                    </Label>
+                    <Input
+                      id="video-url"
+                      type="url"
+                      value={lectureForm.videoUrl}
+                      onChange={(e) => setLectureForm({
+                        ...lectureForm,
+                        videoUrl: e.target.value,
+                        videoFile: null
+                      })}
+                      placeholder="https://example.com/video.mp4"
+                    />
+                  </div>
+
+                  {/* Upload Progress */}
+                  {isUploading && (
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span>Uploading...</span>
+                        <span>{uploadProgress}%</span>
+                      </div>
+                      <Progress value={uploadProgress} className="h-2" />
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex items-center justify-between p-4 border rounded-lg">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="preview-access" className="text-base">
+                      Free Preview
+                    </Label>
+                    <p className="text-sm text-muted-foreground">
+                      Allow non-enrolled students to view this lecture
+                    </p>
+                  </div>
+                  <Switch
+                    id="preview-access"
+                    checked={lectureForm.isPreviewFree}
+                    onCheckedChange={(checked) => setLectureForm({ ...lectureForm, isPreviewFree: checked })}
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowLectureDialog(false)}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={isUploading}>
+                  {isUploading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Uploading...
+                    </>
+                  ) : editingLecture ? (
+                    'Update Lecture'
+                  ) : (
+                    'Create Lecture'
+                  )}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      {/* Sections List */}
+      {sections.length === 0 ? (
+        <Card className="text-center py-12">
+          <CardContent>
+            <FileVideo className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+            <h3 className="text-lg font-semibold mb-2">No Sections Yet</h3>
+            <p className="text-muted-foreground mb-4">
+              Start by creating your first section to organize your lectures.
+            </p>
+            <Button onClick={() => setShowSectionDialog(true)}>
+              <FolderPlus className="mr-2 h-4 w-4" />
+              Create First Section
+            </Button>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-6">
+          {sections.map((section, sectionIndex) => (
+            <Card key={section._id}>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      Section {sectionIndex + 1}: {section.sectionTitle}
+                      <Badge variant="outline">
+                        {section.lectures?.length || 0} lectures
+                      </Badge>
+                    </CardTitle>
+                    <CardDescription>
+                      {section.description || 'No description provided'}
+                    </CardDescription>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => openSectionDialog(section)}
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleDeleteSection(section._id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {!section.lectures || section.lectures.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Video className="h-8 w-8 mx-auto mb-2" />
+                    <p>No lectures in this section yet</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {section.lectures.map((lecture) => (
+                      <div
+                        key={lecture._id}
+                        className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 bg-primary/10 rounded-lg">
+                            <FileVideo className="h-4 w-4 text-primary" />
+                          </div>
+                          <div>
+                            <div className="font-medium">{lecture.title}</div>
+                            <div className="flex items-center gap-2 mt-1">
+                              <Badge variant="outline" className="text-xs">
+                                {lecture.isPreviewFree ? (
+                                  <span className="flex items-center gap-1">
+                                    <Globe className="h-3 w-3" />
+                                    Free Preview
+                                  </span>
+                                ) : (
+                                  <span className="flex items-center gap-1">
+                                    <Lock className="h-3 w-3" />
+                                    Enrolled Only
+                                  </span>
+                                )}
+                              </Badge>
+                              {lecture.videoUrl && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 px-2 text-xs"
+                                  onClick={() => window.open(lecture.videoUrl, '_blank')}
+                                >
+                                  <ExternalLink className="h-3 w-3 mr-1" />
+                                  View
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => openLectureDialog(lecture)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDeleteLecture(lecture._id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+              <CardFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => openLectureDialog(null, section._id)}
+                  className="w-full gap-2"
+                >
+                  <Plus className="h-4 w-4" />
+                  Add Lecture to This Section
+                </Button>
+              </CardFooter>
+            </Card>
+          ))}
         </div>
       )}
     </div>
   );
 };
 
-export default CreateCourseLectures;
+export default CourseLecturesPage;

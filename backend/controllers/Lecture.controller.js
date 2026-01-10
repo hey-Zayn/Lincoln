@@ -14,10 +14,54 @@ const getDataUri = (file) => {
 
 
 // --- Lecture Controllers ---
+exports.uploadVideo = async (req, res) => {
+    try {
+        let videoFile = req.files && req.files.length > 0 ? req.files[0] : null;
+
+        if (!videoFile) {
+            return res.status(400).json({
+                success: false,
+                message: "No video file provided"
+            });
+        }
+
+        const file = getDataUri(videoFile);
+        const myCloud = await cloudinary.uploader.upload(file.content, {
+            resource_type: "video",
+            folder: "lectures",
+        });
+
+        res.status(200).json({
+            success: true,
+            message: "Video uploaded successfully",
+            videoUrl: myCloud.secure_url,
+            publicId: myCloud.public_id
+        });
+    } catch (err) {
+        console.error("Upload Video Error:", err);
+        res.status(500).json({
+            success: false,
+            message: "Internal Server Error during video upload"
+        });
+    }
+};
+
 exports.createLecture = async (req, res) => {
     try {
         const { title, description, isPreviewFree, sectionId } = req.body;
-        const { courseId } = req.params;
+        let courseId = req.params.courseId || req.body.courseId;
+
+        if (!courseId && sectionId) {
+            const courseFound = await Course.findOne({ "sections._id": sectionId });
+            if (courseFound) courseId = courseFound._id;
+        }
+
+        if (!courseId) {
+            return res.status(400).json({
+                success: false,
+                message: "Course ID or Section ID is required"
+            });
+        }
 
         if (!title) {
             return res.status(400).json({
@@ -45,8 +89,10 @@ exports.createLecture = async (req, res) => {
         let videoUrl = req.body.videoUrl || "";
         let publicId = req.body.publicId || "";
 
-        if (req.file) {
-            const file = getDataUri(req.file);
+        let videoFile = req.files && req.files.length > 0 ? req.files[0] : null;
+
+        if (videoFile) {
+            const file = getDataUri(videoFile);
             const myCloud = await cloudinary.uploader.upload(file.content, {
                 resource_type: "video",
                 folder: "lectures",
@@ -142,7 +188,7 @@ exports.getLectureById = async (req, res) => {
     }
 };
 
-exports.editLecture = async (req, res) => {
+exports.updateLecture = async (req, res) => {
     try {
         const { lectureId } = req.params;
         const { title, description, videoUrl, publicId, isPreviewFree } = req.body;
@@ -167,12 +213,14 @@ exports.editLecture = async (req, res) => {
         let vUrl = req.body.videoUrl || lecture.videoUrl;
         let pId = req.body.publicId || lecture.publicId;
 
-        if (req.file) {
+        let videoFile = req.files && req.files.length > 0 ? req.files[0] : null;
+
+        if (videoFile) {
             // Delete old video if it exists
             if (lecture.publicId) {
                 await cloudinary.uploader.destroy(lecture.publicId, { resource_type: "video" });
             }
-            const file = getDataUri(req.file);
+            const file = getDataUri(videoFile);
             const myCloud = await cloudinary.uploader.upload(file.content, {
                 resource_type: "video",
                 folder: "lectures",
@@ -201,7 +249,7 @@ exports.editLecture = async (req, res) => {
     }
 };
 
-exports.removeLecture = async (req, res) => {
+exports.deleteLecture = async (req, res) => {
     try {
         const { lectureId } = req.params;
         const lecture = await Lecture.findById(lectureId);

@@ -16,21 +16,38 @@ const CourseSchema = new mongoose.Schema({
     },
     courseLevel: {
         type: String,
-        enum: ["Beginner", "Medium", "Advance"]
+        enum: ["Beginner", "Intermediate", "Advanced"],
+        default: "Beginner"
     },
     CourseLanguage: {
         type: String,
-        required: true,
+        required: false,
         default: "English"
     },
-    coursePrice: {
+    price: {
         type: Number,
         default: 0
     },
-    courseThumbnail: {
+    thumbnail: {
         type: String,
         default: ""
     },
+    previewVideo: {
+        type: String,
+        default: ""
+    },
+    learningOutcomes: [
+        {
+            type: String,
+            default: ""
+        }
+    ],
+    requirements: [
+        {
+            type: String,
+            default: []
+        },
+    ],
     lectures: [
         {
             type: mongoose.Schema.Types.ObjectId,
@@ -48,7 +65,6 @@ const CourseSchema = new mongoose.Schema({
             ]
         }
     ],
-
     teacher: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "User",
