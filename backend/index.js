@@ -14,7 +14,7 @@ const port = process.env.PORT;
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(cors({
-    origin: process.env.NODE_ENV === "production" ? "https://lincoln-lms.vercel.app/" : "http://localhost:5173",
+    origin: process.env.NODE_ENV === "production" ? "https://lincoln-lms.vercel.app" : "http://localhost:5173",
     credentials: true
 }));
 app.use(cookieParser())
