@@ -17,7 +17,7 @@ const registerUser = async (req, res) => {
             });
         }
 
-        const { firstName, lastName, userName, email, phone, address, password, role } = req.body;
+        const { firstName, lastName, userName, email, phone, nationalID, address, password, role } = req.body;
 
 
         const emailExist = await User.findOne({ email });
@@ -34,6 +34,14 @@ const registerUser = async (req, res) => {
             return res.status(400).json({
                 success: false,
                 message: "User already exists with this phone"
+            })
+        }
+        const nationalIDExist = await User.findOne({ nationalID });
+
+        if (nationalIDExist) {
+            return res.status(400).json({
+                success: false,
+                message: "User already exists with this national ID"
             })
         }
         const userNameExist = await User.findOne({ userName });
@@ -55,6 +63,7 @@ const registerUser = async (req, res) => {
             userName,
             email,
             phone,
+            nationalID,
             address,
             password,
             role: role || "student", // Ensure default role if not provided
@@ -75,8 +84,12 @@ const registerUser = async (req, res) => {
                     lastName: newUser.lastName,
                     userName: newUser.userName,
                     email: newUser.email,
+                    phone: newUser.phone,
+                    nationalID: newUser.nationalID,
+                    address: newUser.address,
                     role: newUser.role,
-                    isVerified: newUser.isVerified
+                    isVerified: newUser.isVerified,
+                    enrolledcourses: newUser.enrolledcourses || []
                 }
             })
         }
@@ -104,7 +117,7 @@ const loginUser = async (req, res) => {
 
         const { email, password } = req.body;
 
-        const user = await User.findOne({ email });
+        const user = await User.findOne({ email }).populate("enrolledcourses");
 
         if (!user) {
             return res.status(400).json({
@@ -158,14 +171,15 @@ const logoutUser = async (req, res) => {
 
 const getUser = async (req, res) => {
     try {
-        res.status(200).json({
+        const user = await req.user.populate("enrolledcourses");
+        return res.status(200).json({
             success: true,
-            message: "User Authenticated Successfully",
-            user: req.user
+            message: "User data fetched successfully",
+            user
         })
     } catch (err) {
         console.log(err);
-        res.status(500).json({
+        return res.status(500).json({
             success: false,
             message: "Something went wrong",
             error: err.message
@@ -380,6 +394,7 @@ const updateProfileUser = async (req, res) => {
         user.address = address || user.address;
         user.bio = bio || user.bio;
         await user.save();
+        await user.populate("enrolledcourses");
 
         res.status(200).json({
             success: true,

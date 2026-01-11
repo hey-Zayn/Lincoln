@@ -1,14 +1,15 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { 
-    LayoutDashboard, 
-    BookOpen, 
-    FileText, 
-    GraduationCap, 
+import {
+    LayoutDashboard,
+    BookOpen,
+    FileText,
+    GraduationCap,
     Calendar,
     Library,
     LogOut,
-    ShieldCheck
+    ShieldCheck,
+    User
 } from 'lucide-react';
 import { useAuthStore } from '../../../../store/useAuthStore';
 import { Button } from '../../../../components/ui/button';
@@ -19,6 +20,7 @@ const StudentDashboardSidebar = () => {
     const navItems = [
         { icon: LayoutDashboard, label: 'Dashboard', path: '/student/dashboard' },
         { icon: BookOpen, label: 'My Courses', path: '/student/courses' },
+        { icon: User, label: 'Class', path: '/student/class' },
         { icon: FileText, label: 'Assignments', path: '/student/assignments' },
         { icon: GraduationCap, label: 'Exams & Results', path: '/student/results' },
         { icon: Library, label: 'Resource Library', path: '/student/library' },
@@ -49,8 +51,8 @@ const StudentDashboardSidebar = () => {
                         to={item.path}
                         className={({ isActive }) => `
                             flex items-center gap-3 px-3 py-2.5 rounded-sm text-sm font-bold transition-all duration-200
-                            ${isActive 
-                                ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-900/20' 
+                            ${isActive
+                                ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-900/20'
                                 : 'text-zinc-400 hover:text-white hover:bg-zinc-900'
                             }
                         `}
@@ -72,8 +74,8 @@ const StudentDashboardSidebar = () => {
                         <span className="text-[9px] font-medium text-emerald-500 uppercase tracking-wider">Active Status</span>
                     </div>
                 </div>
-                <Button 
-                    variant="outline" 
+                <Button
+                    variant="outline"
                     className="w-full justify-start gap-3 border-zinc-800 bg-zinc-900/50 text-zinc-400 hover:text-red-500 hover:bg-zinc-900 hover:border-red-600/20 transition-all font-bold text-xs uppercase tracking-widest h-10"
                     onClick={logout}
                 >
