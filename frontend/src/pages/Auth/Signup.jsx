@@ -2,29 +2,30 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/useAuthStore';
 import { Button } from '../../components/ui/button';
-import { 
-    Card, 
-    CardContent, 
-    CardDescription, 
-    CardFooter, 
-    CardHeader, 
-    CardTitle 
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardFooter,
+    CardHeader,
+    CardTitle
 } from '../../components/ui/card';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
-import { 
-    Mail, 
-    Lock, 
-    User, 
-    Eye, 
-    EyeOff, 
-    UserPlus, 
-    ChevronRight, 
-    ChevronLeft, 
-    Phone, 
-    MapPin, 
+import {
+    Mail,
+    Lock,
+    User,
+    Eye,
+    EyeOff,
+    UserPlus,
+    ChevronRight,
+    ChevronLeft,
+    Phone,
+    MapPin,
     AtSign,
-    CheckCircle2
+    CheckCircle2,
+    Fingerprint
 } from 'lucide-react';
 import { motion as Motion, AnimatePresence } from 'framer-motion';
 import RoleSelector from '../../components/auth/RoleSelector';
@@ -32,15 +33,16 @@ import RoleSelector from '../../components/auth/RoleSelector';
 const Signup = () => {
     const [step, setStep] = useState(1);
     const [showPassword, setShowPassword] = useState(false);
-    const [formData, setFormData] = useState({ 
-        firstName: "", 
-        lastName: "", 
-        userName: "", 
-        email: "", 
-        phone: "", 
-        address: "", 
-        password: "", 
-        role: "student" 
+    const [formData, setFormData] = useState({
+        firstName: "",
+        lastName: "",
+        userName: "",
+        email: "",
+        phone: "",
+        address: "",
+        nationalID: "",
+        password: "",
+        role: "student"
     });
     const { signup, isSigningUp } = useAuthStore();
     const navigate = useNavigate();
@@ -60,7 +62,7 @@ const Signup = () => {
         e.preventDefault();
         const res = await signup(formData);
         if (res?.success) {
-            navigate('/verify-email', { state: { email: formData.email } }); 
+            navigate('/verify-email', { state: { email: formData.email } });
         }
     };
 
@@ -79,8 +81,8 @@ const Signup = () => {
 
                 <Card className="shadow-2xl border-border/50 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl relative z-10 overflow-hidden">
                     <div className="h-2 w-full bg-slate-100 dark:bg-zinc-800">
-                        <Motion.div 
-                            className="h-full bg-red-600" 
+                        <Motion.div
+                            className="h-full bg-red-600"
                             initial={{ width: "33%" }}
                             animate={{ width: `${(step / 3) * 100}%` }}
                             transition={{ duration: 0.5 }}
@@ -94,11 +96,10 @@ const Signup = () => {
                             </div>
                             <div className="flex gap-2">
                                 {[1, 2, 3].map((s) => (
-                                    <div 
-                                        key={s} 
-                                        className={`size-2 rounded-md transition-colors duration-300 ${
-                                            s === step ? 'bg-red-600 w-6' : 'bg-slate-300 dark:bg-zinc-700'
-                                        }`} 
+                                    <div
+                                        key={s}
+                                        className={`size-2 rounded-md transition-colors duration-300 ${s === step ? 'bg-red-600 w-6' : 'bg-slate-300 dark:bg-zinc-700'
+                                            }`}
                                     />
                                 ))}
                             </div>
@@ -131,9 +132,9 @@ const Signup = () => {
                                             <Label htmlFor="userName">Username</Label>
                                             <div className="relative group">
                                                 <AtSign className="absolute left-3 top-3 size-4 text-slate-400 group-focus-within:text-red-600 transition-colors" />
-                                                <Input 
-                                                    id="userName" 
-                                                    placeholder="johndoe123" 
+                                                <Input
+                                                    id="userName"
+                                                    placeholder="johndoe123"
                                                     className="pl-10 h-11"
                                                     required
                                                     value={formData.userName}
@@ -145,10 +146,10 @@ const Signup = () => {
                                             <Label htmlFor="email">Institutional Email</Label>
                                             <div className="relative group">
                                                 <Mail className="absolute left-3 top-3 size-4 text-slate-400 group-focus-within:text-red-600 transition-colors" />
-                                                <Input 
-                                                    id="email" 
-                                                    type="email" 
-                                                    placeholder="name@university.edu" 
+                                                <Input
+                                                    id="email"
+                                                    type="email"
+                                                    placeholder="name@university.edu"
                                                     className="pl-10 h-11"
                                                     required
                                                     value={formData.email}
@@ -160,16 +161,16 @@ const Signup = () => {
                                             <Label htmlFor="password">Password</Label>
                                             <div className="relative group">
                                                 <Lock className="absolute left-3 top-3 size-4 text-slate-400 group-focus-within:text-red-600 transition-colors" />
-                                                <Input 
-                                                    id="password" 
-                                                    type={showPassword ? "text" : "password"} 
-                                                    placeholder="Min. 8 characters" 
+                                                <Input
+                                                    id="password"
+                                                    type={showPassword ? "text" : "password"}
+                                                    placeholder="Min. 8 characters"
                                                     className="pl-10 pr-10 h-11"
                                                     required
                                                     value={formData.password}
                                                     onChange={handleChange}
                                                 />
-                                                <button 
+                                                <button
                                                     type="button"
                                                     onClick={() => setShowPassword(!showPassword)}
                                                     className="absolute right-3 top-3 text-slate-400 hover:text-red-600"
@@ -193,9 +194,9 @@ const Signup = () => {
                                         <div className="grid grid-cols-2 gap-4">
                                             <div className="space-y-2">
                                                 <Label htmlFor="firstName">First Name</Label>
-                                                <Input 
-                                                    id="firstName" 
-                                                    placeholder="John" 
+                                                <Input
+                                                    id="firstName"
+                                                    placeholder="John"
                                                     className="h-11"
                                                     required
                                                     value={formData.firstName}
@@ -204,9 +205,9 @@ const Signup = () => {
                                             </div>
                                             <div className="space-y-2">
                                                 <Label htmlFor="lastName">Last Name</Label>
-                                                <Input 
-                                                    id="lastName" 
-                                                    placeholder="Doe" 
+                                                <Input
+                                                    id="lastName"
+                                                    placeholder="Doe"
                                                     className="h-11"
                                                     required
                                                     value={formData.lastName}
@@ -218,12 +219,26 @@ const Signup = () => {
                                             <Label htmlFor="phone">Phone Number</Label>
                                             <div className="relative group">
                                                 <Phone className="absolute left-3 top-3 size-4 text-slate-400 group-focus-within:text-red-600 transition-colors" />
-                                                <Input 
-                                                    id="phone" 
-                                                    placeholder="+1 (555) 000-0000" 
+                                                <Input
+                                                    id="phone"
+                                                    placeholder="+1 (555) 000-0000"
                                                     className="pl-10 h-11"
                                                     required
                                                     value={formData.phone}
+                                                    onChange={handleChange}
+                                                />
+                                            </div>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="nationalID">National ID / CNIC</Label>
+                                            <div className="relative group">
+                                                <Fingerprint className="absolute left-3 top-3 size-4 text-slate-400 group-focus-within:text-red-600 transition-colors" />
+                                                <Input
+                                                    id="nationalID"
+                                                    placeholder="00000-0000000-0"
+                                                    className="pl-10 h-11"
+                                                    required
+                                                    value={formData.nationalID}
                                                     onChange={handleChange}
                                                 />
                                             </div>
@@ -248,18 +263,18 @@ const Signup = () => {
                                     >
                                         <div className="space-y-2">
                                             <Label>Your Role</Label>
-                                            <RoleSelector 
-                                                selectedRole={formData.role} 
-                                                onChange={handleRoleChange} 
+                                            <RoleSelector
+                                                selectedRole={formData.role}
+                                                onChange={handleRoleChange}
                                             />
                                         </div>
                                         <div className="space-y-2">
                                             <Label htmlFor="address">Campus/Home Address</Label>
                                             <div className="relative group">
                                                 <MapPin className="absolute left-3 top-3 size-4 text-slate-400 group-focus-within:text-red-600 transition-colors" />
-                                                <Input 
-                                                    id="address" 
-                                                    placeholder="Dormitory, Building or Street" 
+                                                <Input
+                                                    id="address"
+                                                    placeholder="Dormitory, Building or Street"
                                                     className="pl-10 h-11"
                                                     required
                                                     value={formData.address}
@@ -275,9 +290,9 @@ const Signup = () => {
                         <CardFooter className="flex flex-col gap-4 mt-8">
                             <div className="flex w-full gap-3">
                                 {step > 1 && (
-                                    <Button 
-                                        type="button" 
-                                        variant="outline" 
+                                    <Button
+                                        type="button"
+                                        variant="outline"
                                         className="h-12 px-6 font-bold"
                                         onClick={prevStep}
                                         disabled={isSigningUp}
@@ -285,18 +300,18 @@ const Signup = () => {
                                         <ChevronLeft className="size-4 mr-2" /> Back
                                     </Button>
                                 )}
-                                
+
                                 {step < 3 ? (
-                                    <Button 
-                                        type="button" 
+                                    <Button
+                                        type="button"
                                         className="flex-1 h-12 bg-red-600 hover:bg-red-700 text-white font-bold transition-all hover:translate-x-1"
                                         onClick={nextStep}
                                     >
                                         Continue <ChevronRight className="size-4 ml-2" />
                                     </Button>
                                 ) : (
-                                    <Button 
-                                        type="submit" 
+                                    <Button
+                                        type="submit"
                                         className="flex-1 h-12 bg-red-600 hover:bg-red-700 text-white font-bold shadow-lg shadow-red-600/30"
                                         disabled={isSigningUp}
                                     >
@@ -309,7 +324,7 @@ const Signup = () => {
                                     </Button>
                                 )}
                             </div>
-                            
+
                             <p className="text-center text-sm text-slate-500">
                                 Already have an account?{" "}
                                 <Link to="/login" className="text-red-600 font-bold hover:underline underline-offset-4">

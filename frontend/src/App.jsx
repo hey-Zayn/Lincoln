@@ -32,6 +32,9 @@ import ManagementDashboard from './pages/Dashboard/Management/ManagementDashboar
 import ManagementHome from './pages/Dashboard/Management/pages/ManagementHome'
 import SettingPage from './pages/Settings/SettingPage'
 import CoursesTeacherDashboard from './pages/Dashboard/Teacher/Pages/CoursesTeacherDashboard'
+import StudentMyCourses from './pages/Dashboard/Student/pages/StudentMyCourses'
+import StudentClassPage from './pages/Dashboard/Student/pages/StudentClassPage'
+import StudentAssingment from './pages/Dashboard/Student/pages/StudentAssingment'
 
 
 const App = () => {
@@ -131,8 +134,9 @@ const App = () => {
               : <Navigate to="/" />
           }>
             <Route path="dashboard" element={<StudentHome />} />
-            <Route path="courses" element={<div className="p-4 text-white">My Courses (Coming Soon)</div>} />
-            <Route path="assignments" element={<div className="p-4 text-white">Assignments (Coming Soon)</div>} />
+            <Route path="courses" element={<StudentMyCourses />} />
+            <Route path="class" element={<StudentClassPage />} />
+            <Route path="assignments" element={<StudentAssingment />} />
             <Route path="results" element={<div className="p-4 text-white">Exams & Results (Coming Soon)</div>} />
             <Route path="library" element={<div className="p-4 text-white">Resource Library (Coming Soon)</div>} />
             <Route path="schedule" element={<div className="p-4 text-white">Class Schedule (Coming Soon)</div>} />

@@ -11,6 +11,7 @@ router.post("/register", [
     body("email").trim().isEmail().withMessage("Invalid email format").normalizeEmail(),
     body("phone").trim().notEmpty().withMessage("Phone number is required")
         .isLength({ min: 10, max: 15 }).withMessage("Phone number must be between 10 and 15 digits"),
+    body("nationalID").trim().notEmpty().withMessage("National ID is required"),
     body("address").trim().notEmpty().withMessage("Address is required"),
     body("password").isLength({ min: 6 }).withMessage("Password must be at least 6 characters long"),
     body("role").optional().isIn(["student", "teacher", "parent", "admin"]).withMessage("Invalid role")

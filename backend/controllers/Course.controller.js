@@ -6,6 +6,7 @@ const Submission = require('../models/Submission.Model');
 const Quiz = require('../models/Quiz.Model');
 const Lecture = require('../models/Lecture.Model');
 const CourseProgress = require('../models/courseProgress.Model');
+const User = require('../models/User.Model');
 
 // --- Course Controllers ---
 exports.createCourse = async (req, res) => {
@@ -433,6 +434,11 @@ exports.enrollStudent = async (req, res) => {
         // Enroll student
         course.studentsEnrolled.push(userId);
         await course.save();
+
+        // Update User's enrolled courses
+        await User.findByIdAndUpdate(userId, {
+            $addToSet: { enrolledcourses: courseId }
+        });
 
         // Initialize Course Progress
         const existingProgress = await CourseProgress.findOne({ userId, courseId });
