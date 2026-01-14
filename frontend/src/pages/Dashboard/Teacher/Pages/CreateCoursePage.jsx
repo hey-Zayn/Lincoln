@@ -20,767 +20,452 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Switch } from "@/components/ui/switch";
-import { Progress } from "@/components/ui/progress";
 import {
   ChevronLeft,
   Loader2,
   Plus,
   Trash2,
-  Edit,
-  Eye,
-  EyeOff,
-  FileVideo,
-  Lock,
-  Globe,
-  MoreVertical,
-  ExternalLink,
   Upload,
   CheckCircle2,
-  XCircle,
-  FolderPlus,
+  BookOpen,
+  IndianRupee,
   Video,
-  FileText,
-  BarChart3,
+  Image as ImageIcon,
+  Save,
+  ArrowRight
 } from 'lucide-react';
 import { toast } from 'sonner';
-import axiosInstance from '../../../../axios/axiosInstance';
 
-const CourseLecturesPage = () => {
+const CreateCoursePage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { getCourseById, currentCourse, isLoading, togglePublish } = useCourseStore();
+  const { getCourseById, createCourse, updateCourse, isLoading, isCreating, isUpdating } = useCourseStore();
 
-  const [sections, setSections] = useState([]);
-  const [editingSection, setEditingSection] = useState(null);
-  const [editingLecture, setEditingLecture] = useState(null);
-  const [showSectionDialog, setShowSectionDialog] = useState(false);
-  const [showLectureDialog, setShowLectureDialog] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [isUploading, setIsUploading] = useState(false);
-
-  const [sectionForm, setSectionForm] = useState({
-    title: '',
-  });
-
-  const [lectureForm, setLectureForm] = useState({
+  const [courseData, setCourseData] = useState({
     title: '',
     description: '',
-    videoFile: null,
-    videoUrl: '',
-    isPreviewFree: false,
+    category: '',
+    courseLevel: 'Beginner',
+    CourseLanguage: 'English',
+    price: 0,
+    thumbnail: '',
+    previewVideo: '',
+    learningOutcomes: [''],
+    requirements: [''],
   });
+
+  const categories = [
+    "Web Development", "Mobile Development", "Data Science",
+    "Machine Learning", "Design", "Business", "Marketing", "Other"
+  ];
 
   useEffect(() => {
     if (id) {
-      getCourseById(id);
+      const fetchCourse = async () => {
+        const data = await getCourseById(id);
+        if (data) {
+          setCourseData({
+            title: data.title || '',
+            description: data.description || '',
+            category: data.category || '',
+            courseLevel: data.courseLevel || 'Beginner',
+            CourseLanguage: data.CourseLanguage || 'English',
+            price: data.price || 0,
+            thumbnail: data.thumbnail || '',
+            previewVideo: data.previewVideo || '',
+            learningOutcomes: data.learningOutcomes?.length > 0 ? data.learningOutcomes : [''],
+            requirements: data.requirements?.length > 0 ? data.requirements : [''],
+          });
+        }
+      };
+      fetchCourse();
     }
   }, [id, getCourseById]);
 
-  useEffect(() => {
-    if (currentCourse?._id) {
-      fetchSections();
-    }
-  }, [currentCourse]);
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setCourseData(prev => ({ ...prev, [name]: value }));
+  };
 
-  const fetchSections = async () => {
-    try {
-      const response = await axiosInstance.get(`/sections/course/${id}`);
-      setSections(response.data.sections || []);
-    } catch (error) {
-      console.error('Failed to fetch sections:', error);
-      setSections([]);
+  const handleArrayChange = (index, value, field) => {
+    const newArray = [...courseData[field]];
+    newArray[index] = value;
+    setCourseData(prev => ({ ...prev, [field]: newArray }));
+  };
+
+  const addArrayItem = (field) => {
+    setCourseData(prev => ({ ...prev, [field]: [...prev[field], ''] }));
+  };
+
+  const removeArrayItem = (index, field) => {
+    if (courseData[field].length <= 1) return;
+    const newArray = courseData[field].filter((_, i) => i !== index);
+    setCourseData(prev => ({ ...prev, [field]: newArray }));
+  };
+
+  const handleFileChange = (e, field) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setCourseData(prev => ({ ...prev, [field]: reader.result }));
+      };
+      reader.readAsDataURL(file);
     }
   };
 
-  const handleTogglePublish = async () => {
-    if (!currentCourse) return;
-    try {
-      await togglePublish(id, !currentCourse.isPublished);
-      toast.success(`Course ${currentCourse.isPublished ? 'unpublished' : 'published'} successfully`);
-    } catch (error) {
-      toast.error('Failed to update course status');
-    }
-  };
-
-  const handleSectionSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      if (editingSection) {
-        await axiosInstance.put(`/sections/${editingSection._id}`, {
-          sectionTitle: sectionForm.title,
-        });
-        toast.success('Section updated successfully');
-      } else {
-        await axiosInstance.post('/sections', {
-          courseId: id,
-          sectionTitle: sectionForm.title,
-        });
-        toast.success('Section created successfully');
-      }
-
-      setShowSectionDialog(false);
-      setEditingSection(null);
-      setSectionForm({ title: '' });
-      fetchSections();
-    } catch (error) {
-      toast.error('Failed to save section');
-    }
-  };
-
-  const handleDeleteSection = async (sectionId) => {
-    if (!window.confirm('Are you sure you want to delete this section? All lectures in this section will also be deleted.')) {
-      return;
-    }
-
-    try {
-      await axiosInstance.delete(`/sections/${sectionId}`);
-      toast.success('Section deleted successfully');
-      fetchSections();
-    } catch (error) {
-      toast.error('Failed to delete section');
-    }
-  };
-
-  const handleVideoUpload = async (file) => {
-    if (!file) return null;
-
-    const formData = new FormData();
-    formData.append('video', file);
-
-    try {
-      setIsUploading(true);
-      setUploadProgress(0);
-
-      const response = await axiosInstance.post('/lectures/upload', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-        onUploadProgress: (progressEvent) => {
-          const percentCompleted = Math.round(
-            (progressEvent.loaded * 100) / progressEvent.total
-          );
-          setUploadProgress(percentCompleted);
-        },
-      });
-
-      setIsUploading(false);
-      setUploadProgress(100);
-      return response.data.videoUrl;
-    } catch (error) {
-      setIsUploading(false);
-      toast.error('Failed to upload video');
-      return null;
-    }
-  };
-
-  const handleLectureSubmit = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
+    // Validations
+    if (!courseData.title || !courseData.description || !courseData.category) {
+      return toast.error("Please fill in all required fields");
+    }
+
     try {
-      let videoUrl = lectureForm.videoUrl;
-
-      if (lectureForm.videoFile) {
-        videoUrl = await handleVideoUpload(lectureForm.videoFile);
-        if (!videoUrl) return;
-      }
-
-      if (editingLecture) {
-        await axiosInstance.put(`/lectures/${editingLecture._id}`, {
-          title: lectureForm.title,
-          description: lectureForm.description,
-          videoUrl: videoUrl,
-          isPreviewFree: lectureForm.isPreviewFree,
-        });
-        toast.success('Lecture updated successfully');
+      if (id) {
+        await updateCourse(id, courseData);
+        toast.success("Course updated successfully");
       } else {
-        await axiosInstance.post('/lectures', {
-          title: lectureForm.title,
-          description: lectureForm.description,
-          videoUrl: videoUrl,
-          isPreviewFree: lectureForm.isPreviewFree,
-          sectionId: lectureForm.sectionId,
-        });
-        toast.success('Lecture created successfully');
+        const newCourse = await createCourse(courseData);
+        if (newCourse?._id) {
+          toast.success("Course details saved!");
+          // Navigate to curriculum stage
+          navigate(`/teacher/courses/${newCourse._id}/curriculum`);
+        }
       }
-
-      setShowLectureDialog(false);
-      setEditingLecture(null);
-      setLectureForm({
-        title: '',
-        description: '',
-        videoFile: null,
-        videoUrl: '',
-        isPreviewFree: false,
-      });
-      fetchSections();
     } catch (error) {
-      toast.error('Failed to save lecture');
+      console.error("Course Save Error:", error);
+      toast.error("Failed to save course");
     }
   };
 
-  const handleDeleteLecture = async (lectureId) => {
-    if (!window.confirm('Are you sure you want to delete this lecture?')) {
-      return;
-    }
-
-    try {
-      await axiosInstance.delete(`/lectures/${lectureId}`);
-      toast.success('Lecture deleted successfully');
-      fetchSections();
-    } catch (error) {
-      toast.error('Failed to delete lecture');
-    }
-  };
-
-  const openSectionDialog = (section = null) => {
-    setEditingSection(section);
-    setSectionForm({
-      title: section?.sectionTitle || '',
-    });
-    setShowSectionDialog(true);
-  };
-
-  const openLectureDialog = (lecture = null, sectionId = null) => {
-    setEditingLecture(lecture);
-    setLectureForm({
-      title: lecture?.title || '',
-      description: lecture?.description || '',
-      videoFile: null,
-      videoUrl: lecture?.videoUrl || '',
-      isPreviewFree: lecture?.isPreviewFree || false,
-      sectionId: sectionId || lecture?.sectionId || '',
-    });
-    setShowLectureDialog(true);
-  };
-
-  if (isLoading || !currentCourse) {
+  // If we are in edit mode and loading, show spinner
+  if (id && isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[calc(100vh-4rem)]">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-          <p className="text-sm text-muted-foreground">Loading course content...</p>
-        </div>
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Loader2 className="h-8 w-8 animate-spin text-red-600" />
       </div>
     );
   }
 
-  const totalLectures = Array.isArray(sections) ? sections.reduce((total, section) =>
-    total + (section.lectures?.length || 0), 0
-  ) : 0;
-
   return (
-    <div className="container mx-auto py-8 px-4 sm:px-6 lg:px-8 max-w-7xl">
+    <div className="container mx-auto py-8 px-4 max-w-5xl">
       {/* Header */}
-      <div className="mb-8">
-        <Button
-          variant="ghost"
-          onClick={() => navigate('/teacher/courses')}
-          className="mb-6 gap-2 pl-0 hover:pl-2 transition-all"
-        >
-          <ChevronLeft className="h-4 w-4" />
-          Back to Courses
-        </Button>
-
-        <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
-          <div className="space-y-3">
-            <div className="flex items-center gap-3">
-              <h1 className="text-3xl font-bold tracking-tight">Course Curriculum</h1>
-              <Badge
-                variant={currentCourse.isPublished ? "default" : "secondary"}
-                className="h-fit"
-              >
-                {currentCourse.isPublished ? 'Published' : 'Draft'}
-              </Badge>
-            </div>
-            <div className="space-y-1">
-              <h2 className="text-lg font-medium text-foreground">{currentCourse.title}</h2>
-              <p className="text-sm text-muted-foreground">
-                {totalLectures} lectures • {sections.length} sections
-              </p>
-            </div>
-          </div>
-
-          <div className="flex flex-col sm:flex-row gap-3">
-            <Button
-              variant="outline"
-              onClick={() => window.open(`/courses/${id}`, '_blank')}
-              className="gap-2"
-            >
-              <Eye className="h-4 w-4" />
-              Preview Course
-            </Button>
-            <Button
-              onClick={handleTogglePublish}
-              variant={currentCourse.isPublished ? "outline" : "default"}
-              className="gap-2"
-            >
-              {currentCourse.isPublished ? (
-                <>
-                  <EyeOff className="h-4 w-4" />
-                  Unpublish
-                </>
-              ) : (
-                <>
-                  <Globe className="h-4 w-4" />
-                  Publish Course
-                </>
-              )}
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <Card className="border-border/50">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground mb-1">Total Sections</p>
-                <p className="text-2xl font-bold">{sections.length}</p>
-              </div>
-              <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                <FileText className="h-5 w-5 text-primary" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-border/50">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground mb-1">Total Lectures</p>
-                <p className="text-2xl font-bold">{totalLectures}</p>
-              </div>
-              <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                <Video className="h-5 w-5 text-primary" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-border/50">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground mb-1">Free Previews</p>
-                <p className="text-2xl font-bold">
-                  {Array.isArray(sections) ? sections.reduce((total, section) =>
-                    total + (section.lectures?.filter(l => l.isPreviewFree)?.length || 0), 0
-                  ) : 0}
-                </p>
-              </div>
-              <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                <Globe className="h-5 w-5 text-primary" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-border/50">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground mb-1">Status</p>
-                <p className="text-lg font-semibold capitalize">
-                  {currentCourse.isPublished ? 'Published' : 'Draft'}
-                </p>
-              </div>
-              <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                <BarChart3 className="h-5 w-5 text-primary" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Action Bar */}
-      <div className="flex flex-col sm:flex-row gap-4 mb-8 p-6 bg-card border rounded-lg">
-        <div className="space-y-1 flex-1">
-          <h3 className="font-semibold">Manage Course Content</h3>
-          <p className="text-sm text-muted-foreground">
-            Organize your course into sections and add lectures with video content
+      <div className="flex items-center justify-between mb-8">
+        <div className="space-y-1">
+          <Button
+            variant="ghost"
+            onClick={() => navigate('/teacher/courses')}
+            className="-ml-3 gap-2 opacity-70 hover:opacity-100"
+          >
+            <ChevronLeft className="h-4 w-4" />
+            Back
+          </Button>
+          <h1 className="text-3xl font-black uppercase tracking-tight italic">
+            {id ? 'Edit Course Details' : 'Create New Course'}
+          </h1>
+          <p className="text-muted-foreground text-sm font-medium">
+            Stage 1: Define your course information and settings
           </p>
         </div>
-        <div className="flex gap-3">
-          <Dialog open={showSectionDialog} onOpenChange={setShowSectionDialog}>
-            <DialogTrigger asChild>
-              <Button className="gap-2">
-                <FolderPlus className="h-4 w-4" />
-                Add Section
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[500px]">
-              <DialogHeader>
-                <DialogTitle>
-                  {editingSection ? 'Edit Section' : 'Create New Section'}
-                </DialogTitle>
-                <DialogDescription>
-                  Sections help organize your course content into logical groups.
-                </DialogDescription>
-              </DialogHeader>
-              <form onSubmit={handleSectionSubmit}>
-                <div className="space-y-4 py-4">
-                  <div className="space-y-3">
-                    <Label htmlFor="title">Section Title</Label>
-                    <Input
-                      id="title"
-                      value={sectionForm.title}
-                      onChange={(e) => setSectionForm({ title: e.target.value })}
-                      placeholder="e.g., Introduction to React"
-                      required
-                      className="h-10"
-                    />
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setShowSectionDialog(false)}
-                  >
-                    Cancel
-                  </Button>
-                  <Button type="submit">
-                    {editingSection ? 'Update Section' : 'Create Section'}
-                  </Button>
-                </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
 
-          <Dialog open={showLectureDialog} onOpenChange={setShowLectureDialog}>
-            <DialogTrigger asChild>
-              <Button variant="outline" className="gap-2">
-                <Video className="h-4 w-4" />
-                Add Lecture
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[600px]">
-              <DialogHeader>
-                <DialogTitle>
-                  {editingLecture ? 'Edit Lecture' : 'Create New Lecture'}
-                </DialogTitle>
-                <DialogDescription>
-                  Add a video lecture to your course. You can upload a video file or provide a video URL.
-                </DialogDescription>
-              </DialogHeader>
-              <form onSubmit={handleLectureSubmit}>
-                <div className="space-y-6 py-4 max-h-[60vh] overflow-y-auto pr-2">
-                  <div className="space-y-3">
-                    <Label htmlFor="lecture-title">Lecture Title</Label>
-                    <Input
-                      id="lecture-title"
-                      value={lectureForm.title}
-                      onChange={(e) => setLectureForm({ ...lectureForm, title: e.target.value })}
-                      placeholder="e.g., Introduction to Components"
-                      required
-                      className="h-10"
-                    />
-                  </div>
-
-                  <div className="space-y-3">
-                    <Label htmlFor="lecture-description">Description (Optional)</Label>
-                    <Textarea
-                      id="lecture-description"
-                      value={lectureForm.description}
-                      onChange={(e) => setLectureForm({ ...lectureForm, description: e.target.value })}
-                      placeholder="Brief description of what students will learn in this lecture..."
-                      rows={3}
-                      className="resize-none"
-                    />
-                  </div>
-
-                  <div className="space-y-4">
-                    <Label>Video Content</Label>
-
-                    <div className="space-y-4">
-                      <div className="space-y-3">
-                        <Label htmlFor="video-upload" className="text-sm font-medium">
-                          Upload Video File
-                        </Label>
-                        <div className="flex gap-2">
-                          <Input
-                            id="video-upload"
-                            type="file"
-                            accept="video/*"
-                            onChange={(e) => setLectureForm({
-                              ...lectureForm,
-                              videoFile: e.target.files[0],
-                              videoUrl: ''
-                            })}
-                            className="cursor-pointer h-10"
-                          />
-                        </div>
-                        {lectureForm.videoFile && (
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <FileVideo className="h-4 w-4" />
-                            {lectureForm.videoFile.name}
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="relative">
-                        <div className="absolute inset-0 flex items-center">
-                          <Separator />
-                        </div>
-                        <div className="relative flex justify-center text-xs">
-                          <span className="bg-background px-3 text-muted-foreground">OR</span>
-                        </div>
-                      </div>
-
-                      <div className="space-y-3">
-                        <Label htmlFor="video-url" className="text-sm font-medium">
-                          Video URL
-                        </Label>
-                        <Input
-                          id="video-url"
-                          type="url"
-                          value={lectureForm.videoUrl}
-                          onChange={(e) => setLectureForm({
-                            ...lectureForm,
-                            videoUrl: e.target.value,
-                            videoFile: null
-                          })}
-                          placeholder="https://example.com/video.mp4"
-                          className="h-10"
-                        />
-                      </div>
-                    </div>
-
-                    {isUploading && (
-                      <div className="space-y-3 border rounded-lg p-4 bg-muted/50">
-                        <div className="flex justify-between text-sm">
-                          <span className="font-medium">Uploading...</span>
-                          <span>{uploadProgress}%</span>
-                        </div>
-                        <Progress value={uploadProgress} className="h-2" />
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="flex items-center justify-between p-4 border rounded-lg bg-muted/30">
-                    <div className="space-y-1">
-                      <Label htmlFor="preview-access" className="font-medium">
-                        Free Preview
-                      </Label>
-                      <p className="text-sm text-muted-foreground">
-                        Allow non-enrolled students to view this lecture
-                      </p>
-                    </div>
-                    <Switch
-                      id="preview-access"
-                      checked={lectureForm.isPreviewFree}
-                      onCheckedChange={(checked) => setLectureForm({ ...lectureForm, isPreviewFree: checked })}
-                    />
-                  </div>
-                </div>
-                <DialogFooter className="pt-4 border-t">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setShowLectureDialog(false)}
-                  >
-                    Cancel
-                  </Button>
-                  <Button type="submit" disabled={isUploading}>
-                    {isUploading ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Uploading...
-                      </>
-                    ) : editingLecture ? (
-                      'Update Lecture'
-                    ) : (
-                      'Create Lecture'
-                    )}
-                  </Button>
-                </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
-        </div>
+        {id && (
+          <Button
+            variant="outline"
+            className="gap-2 font-bold uppercase tracking-wider text-xs border-zinc-800"
+            onClick={() => navigate(`/teacher/courses/${id}/curriculum`)}
+          >
+            Go to Curriculum
+            <ArrowRight className="h-4 w-4" />
+          </Button>
+        )}
       </div>
 
-      {/* Sections List */}
-      {sections.length === 0 ? (
-        <Card className="text-center py-16 border-dashed">
-          <CardContent className="space-y-4">
-            <div className="h-12 w-12 mx-auto rounded-full bg-primary/10 flex items-center justify-center">
-              <FileVideo className="h-6 w-6 text-primary" />
-            </div>
-            <div className="space-y-2">
-              <h3 className="text-lg font-semibold">No Sections Created</h3>
-              <p className="text-muted-foreground max-w-md mx-auto">
-                Start by creating sections to organize your course content. Sections help students follow along in a logical sequence.
-              </p>
-            </div>
-            <Button onClick={() => setShowSectionDialog(true)} className="mt-4">
-              <FolderPlus className="mr-2 h-4 w-4" />
-              Create First Section
-            </Button>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="space-y-6">
-          {sections.map((section, sectionIndex) => (
-            <Card key={section._id} className="overflow-hidden border-border/50">
-              <CardHeader className="pb-4">
-                <div className="flex items-start justify-between">
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-3">
-                      <div className="h-8 w-8 rounded-md bg-primary/10 flex items-center justify-center">
-                        <span className="text-sm font-semibold text-primary">{sectionIndex + 1}</span>
-                      </div>
-                      <div>
-                        <CardTitle className="text-lg">{section.sectionTitle}</CardTitle>
-                        <CardDescription>
-                          {section.description || 'No description provided'}
-                        </CardDescription>
-                      </div>
-                    </div>
-                    <Badge variant="outline" className="w-fit">
-                      {section.lectures?.length || 0} lectures
-                    </Badge>
-                  </div>
-                  <div className="flex gap-1">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => openSectionDialog(section)}
-                      className="h-8 w-8 p-0"
-                    >
-                      <Edit className="h-3.5 w-3.5" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleDeleteSection(section._id)}
-                      className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
+      <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Main Info */}
+        <div className="lg:col-span-2 space-y-6">
+          <Card className="border-slate-200 dark:border-zinc-800 dark:bg-zinc-900 shadow-sm">
+            <CardHeader className="border-b border-slate-100 dark:border-zinc-800/50 bg-slate-50/50 dark:bg-zinc-950/30">
+              <CardTitle className="text-lg font-bold uppercase italic flex items-center gap-2 text-slate-900 dark:text-white">
+                <BookOpen className="h-5 w-5 text-red-600" />
+                Basic Information
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="title" className="font-bold uppercase text-[11px] tracking-widest text-muted-foreground">Course Title</Label>
+                <Input
+                  id="title"
+                  name="title"
+                  value={courseData.title}
+                  onChange={handleInputChange}
+                  placeholder="e.g., Master React with Advanced Patterns"
+                  className="font-bold text-lg bg-white dark:bg-zinc-950 border-slate-200 dark:border-zinc-800"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="description" className="font-bold uppercase text-[11px] tracking-widest text-muted-foreground">Description</Label>
+                <Textarea
+                  id="description"
+                  name="description"
+                  value={courseData.description}
+                  onChange={handleInputChange}
+                  placeholder="Tell your students what this course is about..."
+                  rows={6}
+                  className="resize-none leading-relaxed bg-white dark:bg-zinc-950 border-slate-200 dark:border-zinc-800"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="category" className="font-bold uppercase text-[11px] tracking-widest text-muted-foreground">Category</Label>
+                  <Select
+                    value={courseData.category}
+                    onValueChange={(val) => setCourseData(prev => ({ ...prev, category: val }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select Category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {categories.map(cat => (
+                        <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="courseLevel" className="font-bold uppercase text-[11px] tracking-widest text-muted-foreground">Level</Label>
+                  <Select
+                    value={courseData.courseLevel}
+                    onValueChange={(val) => setCourseData(prev => ({ ...prev, courseLevel: val }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select Level" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Beginner">Beginner</SelectItem>
+                      <SelectItem value="Intermediate">Intermediate</SelectItem>
+                      <SelectItem value="Advanced">Advanced</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="CourseLanguage" className="font-bold uppercase text-[11px] tracking-widest text-muted-foreground">Language</Label>
+                  <Input
+                    id="CourseLanguage"
+                    name="CourseLanguage"
+                    value={courseData.CourseLanguage}
+                    onChange={handleInputChange}
+                    placeholder="English"
+                    className="bg-white dark:bg-zinc-950 border-slate-200 dark:border-zinc-800"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="price" className="font-bold uppercase text-[11px] tracking-widest text-muted-foreground">Price (INR)</Label>
+                  <div className="relative">
+                    <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="price"
+                      name="price"
+                      type="number"
+                      value={courseData.price}
+                      onChange={handleInputChange}
+                      className="pl-9 font-black bg-white dark:bg-zinc-950 border-slate-200 dark:border-zinc-800"
+                    />
                   </div>
                 </div>
-              </CardHeader>
+              </div>
+            </CardContent>
+          </Card>
 
-              <CardContent className="pt-0">
-                {!section.lectures || section.lectures.length === 0 ? (
-                  <div className="py-8 text-center border-2 border-dashed rounded-lg">
-                    <Video className="h-8 w-8 mx-auto text-muted-foreground mb-3" />
-                    <p className="text-muted-foreground mb-4">No lectures in this section yet</p>
+          {/* Outcomes & Requirements */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Card className="border-slate-200 dark:border-zinc-800 dark:bg-zinc-900 shadow-sm">
+              <CardHeader className="pb-3 border-b border-slate-100 dark:border-zinc-800/50 bg-slate-50/50 dark:bg-zinc-950/30 mb-4">
+                <CardTitle className="text-sm font-bold uppercase tracking-widest flex items-center gap-2 text-slate-900 dark:text-white">
+                  <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                  What they'll learn
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {courseData.learningOutcomes.map((outcome, idx) => (
+                  <div key={idx} className="flex gap-2">
+                    <Input
+                      value={outcome}
+                      onChange={(e) => handleArrayChange(idx, e.target.value, 'learningOutcomes')}
+                      placeholder="e.g., Build 5 real-world projects"
+                      className="text-sm h-9"
+                    />
                     <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => openLectureDialog(null, section._id)}
-                      className="gap-2"
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => removeArrayItem(idx, 'learningOutcomes')}
+                      className="h-9 w-9 shrink-0 text-muted-foreground hover:text-red-500"
                     >
-                      <Plus className="h-3.5 w-3.5" />
-                      Add First Lecture
+                      <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
-                ) : (
-                  <div className="space-y-3">
-                    {section.lectures.map((lecture) => (
-                      <div
-                        key={lecture._id}
-                        className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/30 transition-colors group"
-                      >
-                        <div className="flex items-start gap-4">
-                          <div className="h-10 w-10 rounded-md bg-primary/10 flex items-center justify-center flex-shrink-0">
-                            <FileVideo className="h-4 w-4 text-primary" />
-                          </div>
-                          <div className="space-y-1">
-                            <div className="flex items-center gap-2">
-                              <span className="font-medium">{lecture.title}</span>
-                              <Badge
-                                variant={lecture.isPreviewFree ? "default" : "outline"}
-                                className="h-5 text-xs"
-                              >
-                                {lecture.isPreviewFree ? (
-                                  <span className="flex items-center gap-1">
-                                    <Globe className="h-3 w-3" />
-                                    Free Preview
-                                  </span>
-                                ) : (
-                                  <span className="flex items-center gap-1">
-                                    <Lock className="h-3 w-3" />
-                                    Enrolled Only
-                                  </span>
-                                )}
-                              </Badge>
-                            </div>
-                            {lecture.description && (
-                              <p className="text-sm text-muted-foreground line-clamp-1">
-                                {lecture.description}
-                              </p>
-                            )}
-                            {lecture.videoUrl && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-7 px-2 text-xs -ml-2"
-                                onClick={() => window.open(lecture.videoUrl, '_blank')}
-                              >
-                                <ExternalLink className="h-3 w-3 mr-1" />
-                                View Video
-                              </Button>
-                            )}
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => openLectureDialog(lecture)}
-                            className="h-8 w-8"
-                          >
-                            <Edit className="h-3.5 w-3.5" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleDeleteLecture(lecture._id)}
-                            className="h-8 w-8 text-destructive hover:text-destructive"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-
-              <CardFooter className="border-t pt-4">
+                ))}
                 <Button
-                  variant="ghost"
-                  onClick={() => openLectureDialog(null, section._id)}
-                  className="gap-2 w-full hover:bg-muted/50"
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => addArrayItem('learningOutcomes')}
+                  className="w-full mt-2 border-dashed gap-2 text-xs font-bold uppercase py-4"
                 >
-                  <Plus className="h-4 w-4" />
-                  Add Lecture to This Section
+                  <Plus className="h-3 w-3" /> Add Outcome
                 </Button>
-              </CardFooter>
+              </CardContent>
             </Card>
-          ))}
+
+            <Card className="border-slate-200 dark:border-zinc-800 dark:bg-zinc-900 shadow-sm">
+              <CardHeader className="pb-3 border-b border-slate-100 dark:border-zinc-800/50 bg-slate-50/50 dark:bg-zinc-950/30 mb-4">
+                <CardTitle className="text-sm font-bold uppercase tracking-widest flex items-center gap-2 text-slate-900 dark:text-white">
+                  <Plus className="h-4 w-4 text-blue-500" />
+                  Requirements
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {courseData.requirements.map((req, idx) => (
+                  <div key={idx} className="flex gap-2">
+                    <Input
+                      value={req}
+                      onChange={(e) => handleArrayChange(idx, e.target.value, 'requirements')}
+                      placeholder="e.g., Basic JavaScript knowledge"
+                      className="text-sm h-9"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => removeArrayItem(idx, 'requirements')}
+                      className="h-9 w-9 shrink-0 text-muted-foreground hover:text-red-500"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => addArrayItem('requirements')}
+                  className="w-full mt-2 border-dashed gap-2 text-xs font-bold uppercase py-4"
+                >
+                  <Plus className="h-3 w-3" /> Add Requirement
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
         </div>
-      )}
+
+        {/* Sidebar: Media & Publish */}
+        <div className="space-y-6">
+          <Card className="border-slate-200 dark:border-zinc-800 dark:bg-zinc-900 shadow-sm overflow-hidden">
+            <CardHeader className="bg-slate-50 dark:bg-zinc-950 border-b border-slate-100 dark:border-zinc-800">
+              <CardTitle className="text-sm font-bold uppercase italic tracking-widest flex items-center gap-2 text-slate-900 dark:text-white">
+                <ImageIcon className="h-4 w-4 text-red-600" />
+                Thumbnail
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-6">
+              <div className="aspect-video w-full bg-slate-100 dark:bg-zinc-950 rounded-sm border-2 border-dashed border-slate-200 dark:border-zinc-800 flex flex-col items-center justify-center overflow-hidden relative group transition-colors">
+                {courseData.thumbnail ? (
+                  <>
+                    <img src={courseData.thumbnail} alt="Thumbnail preview" className="w-full h-full object-cover" />
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                      <Label htmlFor="thumbnail" className="cursor-pointer bg-white text-black px-4 py-2 rounded-md font-bold text-xs uppercase shadow-xl">
+                        Change Image
+                      </Label>
+                    </div>
+                  </>
+                ) : (
+                  <Label htmlFor="thumbnail" className="flex flex-col items-center gap-2 cursor-pointer p-4 text-center">
+                    <Upload className="h-8 w-8 text-muted-foreground" />
+                    <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Upload Thumbnail</span>
+                  </Label>
+                )}
+                <Input
+                  id="thumbnail"
+                  type="file"
+                  onChange={(e) => handleFileChange(e, 'thumbnail')}
+                  className="hidden"
+                  accept="image/*"
+                />
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-4 text-center font-medium">
+                Standard ratio: 16:9 • Suggested size: 1280x720
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="border-slate-200 dark:border-zinc-800 dark:bg-zinc-900 shadow-sm overflow-hidden">
+            <CardHeader className="bg-slate-50 dark:bg-zinc-950 border-b border-slate-100 dark:border-zinc-800">
+              <CardTitle className="text-sm font-bold uppercase italic tracking-widest flex items-center gap-2 text-slate-900 dark:text-white">
+                <Video className="h-4 w-4 text-blue-600" />
+                Preview Video
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-6">
+              <div className="aspect-video w-full bg-slate-100 dark:bg-zinc-950 rounded-sm border-2 border-dashed border-slate-200 dark:border-zinc-800 flex flex-col items-center justify-center overflow-hidden relative group transition-colors">
+                {courseData.previewVideo ? (
+                  <div className="w-full h-full relative">
+                    <video src={courseData.previewVideo} className="w-full h-full object-cover" />
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                      <Label htmlFor="previewVideo" className="cursor-pointer bg-white text-black px-4 py-2 rounded-md font-bold text-xs uppercase shadow-xl">
+                        Replace Video
+                      </Label>
+                    </div>
+                  </div>
+                ) : (
+                  <Label htmlFor="previewVideo" className="flex flex-col items-center gap-2 cursor-pointer p-4 text-center">
+                    <Video className="h-8 w-8 text-muted-foreground" />
+                    <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Upload Promo Video</span>
+                  </Label>
+                )}
+                <Input
+                  id="previewVideo"
+                  type="file"
+                  onChange={(e) => handleFileChange(e, 'previewVideo')}
+                  className="hidden"
+                  accept="video/*"
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          <div className="sticky top-8 space-y-4">
+            <Button
+              type="submit"
+              className="w-full h-14 bg-red-600 hover:bg-red-700 text-white font-black uppercase tracking-widest italic shadow-xl shadow-red-600/20 gap-3"
+              disabled={isCreating || isUpdating}
+            >
+              {(isCreating || isUpdating) ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : (
+                <Save className="h-5 w-5" />
+              )}
+              {id ? 'Update Course' : 'Create Course'}
+            </Button>
+
+            <p className="text-[10px] text-center text-muted-foreground font-black uppercase tracking-widest">
+              By submitting, you agree to our Instructor Terms of Service.
+            </p>
+          </div>
+        </div>
+      </form>
     </div>
   );
 };
 
-export default CourseLecturesPage;
+export default CreateCoursePage;

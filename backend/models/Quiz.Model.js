@@ -28,7 +28,15 @@ const QuizSchema = new mongoose.Schema({
         ref: "Course",
         required: true
     },
-    questions: [QuestionSchema]
+    questions: [QuestionSchema],
+    sectionId: {
+        type: mongoose.Schema.Types.ObjectId,
+        required: false // Optional if it's a course-level quiz
+    },
+    passingScore: {
+        type: Number,
+        default: 70
+    }
 }, { timestamps: true });
 
 const Quiz = mongoose.model("Quiz", QuizSchema);

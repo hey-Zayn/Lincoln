@@ -18,6 +18,8 @@ router.put('/update/:id', upload.none(), courseController.updateCourse);
 router.put('/publish/:id', courseController.togglePublish);
 router.delete('/delete/:id', courseController.deleteCourse);
 router.post('/enroll/:id', courseController.enrollStudent);
+router.get('/student/dashboard-stats', courseController.getStudentDashboardStats);
+router.get('/teacher/dashboard-stats', courseController.getTeacherDashboardStats);
 
 
 
@@ -29,8 +31,9 @@ router.get('/:courseId/progress', protectedRoute, courseController.getCourseProg
 router.post('/:courseId/progress/update/:lectureId', protectedRoute, courseController.updateLectureProgress);
 
 // --- Material Routes ---
-router.post('/:id/materials', courseController.uploadMaterial);
+router.post('/:id/materials', upload.single('file'), courseController.uploadMaterial);
 router.get('/:id/materials', courseController.getMaterialsByCourse);
+router.delete('/:id/materials/:materialId', courseController.deleteMaterial);
 
 // --- Assignment Routes ---
 router.post('/:id/assignments', courseController.createAssignment);
@@ -47,5 +50,17 @@ router.post('/:id/quizzes', courseController.createQuiz);
 router.get('/:id/quizzes', courseController.getQuizzesByCourse);
 router.get('/quizzes/:id', courseController.getQuizById);
 router.post('/quizzes/:id/submit', courseController.submitQuiz);
+router.delete('/:id/quizzes/:quizId', courseController.deleteQuiz);
+
+// --- Discussion (Comment) Routes ---
+router.post('/:courseId/lectures/:lectureId/comments', courseController.addComment);
+router.get('/:id/lectures/:lectureId/comments', courseController.getCommentsByLecture);
+router.put('/comments/:commentId', courseController.updateComment);
+router.delete('/comments/:commentId', courseController.deleteComment);
+router.post('/comments/:commentId/like', courseController.toggleLikeComment);
+
+// --- User Note Routes ---
+router.get('/:courseId/lectures/:lectureId/note', courseController.getUserNote);
+router.post('/:courseId/lectures/:lectureId/note', courseController.upsertUserNote);
 
 module.exports = router;

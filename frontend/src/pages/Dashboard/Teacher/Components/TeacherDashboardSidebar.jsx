@@ -53,21 +53,21 @@ const TeacherDashboardSidebar = () => {
             items: [
                 { icon: LayoutDashboard, label: 'Dashboard', path: '/teacher/dashboard', badge: null },
                 { icon: Folders, label: 'Courses', path: '/teacher/courses', badge: 3 },
-                { icon: Users, label: 'Quizzes', path: '/teacher/quizes', badge: 2 },
+                // { icon: Users, label: 'Quizzes', path: '/teacher/quizes', badge: 2 },
             ]
         },
         {
             title: "Management",
             items: [
                 { icon: FileText, label: 'Assignments', path: '/teacher/assignments', badge: 5 },
-                { icon: Calendar, label: 'Announcements', path: '/teacher/announcements', badge: null },
+                // { icon: Calendar, label: 'Announcements', path: '/teacher/announcements', badge: null },
             ]
         },
         {
             title: "Learning Services",
             items: [
                 { icon: Users, label: 'Students', path: '/teacher/students', badge: null },
-                { icon: Award, label: 'Certificates', path: '/teacher/certificates', badge: 1 },
+                // { icon: Award, label: 'Certificates', path: '/teacher/certificates', badge: 1 },
             ]
         }
     ], []);
