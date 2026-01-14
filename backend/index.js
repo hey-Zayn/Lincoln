@@ -8,7 +8,16 @@ const connectionDB = require("./config/Database/connection");
 
 
 const app = express();
-const port = process.env.PORT;
+const port = process.env.PORT || 3000;
+
+// Critical environment validation
+const REQUIRED_VARS = ['MONGO_URL', 'JWT_SECRET', 'CLOUDINARY_CLOUD_NAME'];
+REQUIRED_VARS.forEach(v => {
+    if (!process.env[v]) {
+        console.error(`CRITICAL CONFIG ERROR: ${v} is not defined.`);
+        // Don't exit process in Vercel, just log and allow the server to report it via health check
+    }
+});
 
 
 app.use(express.json({ limit: '50mb' }));
