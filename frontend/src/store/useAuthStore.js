@@ -4,6 +4,7 @@ import { create } from "zustand";
 
 export const useAuthStore = create((set) => ({
     authUser: null,
+    isLoading: false,
     isSigningUp: false,
     isLoggingIn: false,
     isVerifying: false,
@@ -12,6 +13,8 @@ export const useAuthStore = create((set) => ({
     isResetPassword: false,
     isUpdatingPassword: false,
     isUpdatingProfile: false,
+    adminUser: [],
+    managmentUsers: [],
 
     checkAuth: async () => {
         try {
@@ -134,6 +137,49 @@ export const useAuthStore = create((set) => ({
         } finally {
             set({ isUpdatingPassword: false });
         }
+    },
+
+    getAllAdminUsers: async () => {
+        set({ isLoading: true });
+        try {
+            const res = await axiosInstance.get("/users/all-users-for-admin");
+            set({ adminUser: res.data.users });
+            // toast.success(res.data.message || "Admin users fetched successfully!");
+            return res.data.users;
+        } catch (error) {
+            toast.error(error.response?.data?.message || "Failed to get admin users");
+            console.error(error);
+        } finally {
+            set({ isLoading: false });
+        }
+    },
+
+    getAllManagementUsers: async () => {
+        set({ isLoading: true });
+        try {
+            const res = await axiosInstance.get("/users/all-users-for-management");
+            set({ managmentUsers: res.data.users });
+            // toast.success(res.data.message || "Management users fetched successfully!");
+            return res.data.users;
+        } catch (error) {
+            toast.error(error.response?.data?.message || "Failed to get management users");
+            console.error(error);
+        } finally {
+            set({ isLoading: false });
+        }
+    },
+
+    updateCourseProgressLocal: (courseId, progress) => {
+        set((state) => {
+            if (!state.authUser) return state;
+            const updatedProgress = state.authUser.courseProgress?.map((cp) => {
+                const cpId = typeof cp.courseId === 'string' ? cp.courseId : cp.courseId?._id?.toString() || cp.courseId?.toString();
+                return cpId === courseId.toString() ? { ...cp, progress } : cp;
+            });
+            return {
+                authUser: { ...state.authUser, courseProgress: updatedProgress }
+            };
+        });
     },
 
 }));

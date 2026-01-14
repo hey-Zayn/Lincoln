@@ -121,12 +121,29 @@ const SingleCoursePage = () => {
                 </div>
 
                 {isEnrolled ? (
-                  <button
-                    onClick={() => navigate(`/course/${id}/lectures`)}
-                    className="w-full py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-black uppercase tracking-widest rounded-md flex items-center justify-center gap-2 transition-all shadow-lg shadow-emerald-500/20 active:scale-95"
-                  >
-                    Go to Dashboard <ChevronRight className="size-5" />
-                  </button>
+                  <div className="space-y-4">
+                    <button
+                      onClick={() => navigate(`/course/${id}/lectures`)}
+                      className="w-full py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-black uppercase tracking-widest rounded-md flex items-center justify-center gap-2 transition-all shadow-lg shadow-emerald-500/20 active:scale-95"
+                    >
+                      Go to Dashboard <ChevronRight className="size-5" />
+                    </button>
+                    {/* Compact progress display */}
+                    <div className="px-1 space-y-2">
+                      <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-slate-500">
+                        <span>Course Progress</span>
+                        <span>{authUser.courseProgress?.find(cp =>
+                          (typeof cp.courseId === 'string' ? cp.courseId === id : cp.courseId?._id === id)
+                        )?.progress || 0}%</span>
+                      </div>
+                      <div className="h-1.5 w-full bg-slate-100 dark:bg-zinc-800 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-emerald-500 transition-all duration-500"
+                          style={{ width: `${authUser.courseProgress?.find(cp => (typeof cp.courseId === 'string' ? cp.courseId === id : cp.courseId?._id === id))?.progress || 0}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
                 ) : (
                   <button
                     onClick={handleEnroll}

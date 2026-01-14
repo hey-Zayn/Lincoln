@@ -1,6 +1,7 @@
 import axiosInstance from "../axios/axiosInstance";
 import { toast } from "sonner";
 import { create } from "zustand";
+import { useAuthStore } from "./useAuthStore";
 
 export const useCourseStore = create((set) => ({
     courses: [],
@@ -162,6 +163,37 @@ export const useCourseStore = create((set) => ({
             toast.error(error.response?.data?.message || "Failed to delete course");
         } finally {
             set({ isDeleting: false });
+        }
+    },
+
+    courseProgress: null,
+
+    getCourseProgress: async (courseId) => {
+        try {
+            const res = await axiosInstance.get(`/courses/${courseId}/progress`);
+            set({ courseProgress: res.data });
+            return res.data;
+        } catch (error) {
+            console.error("Error in getCourseProgress:", error);
+            return null;
+        }
+    },
+
+    updateLectureProgress: async (courseId, lectureId) => {
+        try {
+            const res = await axiosInstance.post(`/courses/${courseId}/progress/update/${lectureId}`);
+            set({
+                courseProgress: res.data
+            });
+            // Sync with local User summary in authStore
+            const { updateCourseProgressLocal } = useAuthStore.getState();
+            if (updateCourseProgressLocal) {
+                updateCourseProgressLocal(courseId, res.data.progress);
+            }
+            return res.data;
+        } catch (error) {
+            console.error("Error in updateLectureProgress:", error);
+            return null;
         }
     },
 

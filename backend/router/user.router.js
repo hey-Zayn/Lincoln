@@ -2,7 +2,8 @@ const express = require("express");
 const router = express.Router();
 const { body } = require("express-validator");
 const { registerUser, loginUser, logoutUser, getUser, verifyUser, forgotPassword, resetPassword, updatePassword, updateProfileUser } = require("../controllers/User.controller");
-const protectedRoute = require("../middlewares/Auth.Middleware");
+const { protectedRoute } = require("../middlewares/Auth.Middleware");
+const { getAllAdminUsers, getAllManagementUsers } = require("../controllers/User.controller");
 
 router.post("/register", [
     body("firstName").trim().notEmpty().withMessage("First name is required"),
@@ -14,7 +15,7 @@ router.post("/register", [
     body("nationalID").trim().notEmpty().withMessage("National ID is required"),
     body("address").trim().notEmpty().withMessage("Address is required"),
     body("password").isLength({ min: 6 }).withMessage("Password must be at least 6 characters long"),
-    body("role").optional().isIn(["student", "teacher", "parent", "admin"]).withMessage("Invalid role")
+    body("role").optional().isIn(["student", "teacher", "parent", "management", "admin"]).withMessage("Invalid role")
 ], registerUser);
 
 router.post("/login", [
@@ -45,6 +46,8 @@ router.put("/update-password", protectedRoute, [
 ], updatePassword);
 
 router.get("/me", protectedRoute, getUser);
+router.get("/all-users-for-admin", protectedRoute, getAllAdminUsers);
+router.get("/all-users-for-management", protectedRoute, getAllManagementUsers);
 
 router.put('/profile', protectedRoute, [
     body("firstName").optional().trim().notEmpty().withMessage("First name cannot be empty"),

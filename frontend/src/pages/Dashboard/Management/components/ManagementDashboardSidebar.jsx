@@ -1,10 +1,10 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { 
-    LayoutDashboard, 
-    Users, 
-    PieChart, 
-    FileBarChart, 
+import {
+    LayoutDashboard,
+    Users,
+    PieChart,
+    FileBarChart,
     Building2,
     LogOut,
     ShieldAlert,
@@ -19,6 +19,7 @@ const ManagementDashboardSidebar = () => {
     const navItems = [
         { icon: LayoutDashboard, label: 'Dashboard', path: '/management/dashboard' },
         { icon: Users, label: 'Staff Directory', path: '/management/staff' },
+        { icon: Users, label: 'Classes', path: '/management/classes' },
         { icon: PieChart, label: 'Financials', path: '/management/finance' },
         { icon: FileBarChart, label: 'Performance Reports', path: '/management/reports' },
         { icon: ScrollText, label: 'Policy Center', path: '/management/policies' },
@@ -49,8 +50,8 @@ const ManagementDashboardSidebar = () => {
                         to={item.path}
                         className={({ isActive }) => `
                             flex items-center gap-3 px-3 py-2.5 rounded-sm text-sm font-bold transition-all duration-200
-                            ${isActive 
-                                ? 'bg-amber-600 text-white shadow-lg shadow-amber-900/20' 
+                            ${isActive
+                                ? 'bg-amber-600 text-white shadow-lg shadow-amber-900/20'
                                 : 'text-zinc-400 hover:text-white hover:bg-zinc-900'
                             }
                         `}
@@ -72,8 +73,8 @@ const ManagementDashboardSidebar = () => {
                         <span className="text-[9px] font-medium text-amber-500 uppercase tracking-wider">Authorized</span>
                     </div>
                 </div>
-                <Button 
-                    variant="outline" 
+                <Button
+                    variant="outline"
                     className="w-full justify-start gap-3 border-zinc-800 bg-zinc-900/50 text-zinc-400 hover:text-red-500 hover:bg-zinc-900 hover:border-red-600/20 transition-all font-bold text-xs uppercase tracking-widest h-10"
                     onClick={logout}
                 >

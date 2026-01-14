@@ -10,7 +10,7 @@ const AdminDashboard = () => {
       <div className="flex-1 lg:ml-64 flex flex-col transition-all duration-300">
         <AdminTopBar />
         <div className="flex-1 p-8 max-w-7xl mx-auto w-full">
-            <Outlet />
+          <Outlet />
         </div>
       </div>
     </div>

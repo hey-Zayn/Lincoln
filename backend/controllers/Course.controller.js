@@ -435,12 +435,15 @@ exports.enrollStudent = async (req, res) => {
         course.studentsEnrolled.push(userId);
         await course.save();
 
-        // Update User's enrolled courses
+        // Update User's enrolled courses and initialize courseProgress summary
         await User.findByIdAndUpdate(userId, {
-            $addToSet: { enrolledcourses: courseId }
+            $addToSet: {
+                enrolledcourses: courseId,
+                courseProgress: { courseId, progress: 0 }
+            }
         });
 
-        // Initialize Course Progress
+        // Initialize Course Progress document
         const existingProgress = await CourseProgress.findOne({ userId, courseId });
         if (!existingProgress) {
             await CourseProgress.create({
@@ -466,11 +469,127 @@ exports.enrollStudent = async (req, res) => {
 
 // --- Progress Controllers ---
 exports.getCourseProgress = async (req, res) => {
-    res.status(501).json({ message: "Not Implemented" });
+    try {
+        const { courseId } = req.params;
+        const userId = req.user._id;
+
+        const progress = await CourseProgress.findOne({ userId, courseId });
+        const course = await Course.findById(courseId).populate('sections.lectures lectures');
+
+        if (!course) {
+            return res.status(404).json({
+                success: false,
+                message: "Course not found"
+            });
+        }
+
+        if (!progress) {
+            return res.status(200).json({
+                success: true,
+                progress: 0,
+                completedLectures: [],
+                completed: false
+            });
+        }
+
+        // Calculate total lectures
+        const allLectureIds = new Set();
+        course.lectures.forEach(l => allLectureIds.add(l._id.toString()));
+        course.sections.forEach(s => {
+            s.lectures.forEach(l => allLectureIds.add(l._id.toString()));
+        });
+        const totalLectures = allLectureIds.size;
+
+        const viewedLectures = progress.lectureProgress.filter(lp => lp.viewed).length;
+        const percentage = totalLectures > 0 ? Math.round((viewedLectures / totalLectures) * 100) : 0;
+
+        res.status(200).json({
+            success: true,
+            progress: percentage,
+            completedLectures: progress.lectureProgress.filter(lp => lp.viewed).map(lp => lp.lectureId),
+            completed: progress.completed
+        });
+    } catch (err) {
+        console.error("Get Course Progress Error:", err);
+        res.status(500).json({
+            success: false,
+            message: "Internal Server Error Course Progress"
+        });
+    }
 };
 
 exports.updateLectureProgress = async (req, res) => {
-    res.status(501).json({ message: "Not Implemented" });
+    try {
+        const { courseId, lectureId } = req.params;
+        const userId = req.user._id;
+
+        let progress = await CourseProgress.findOne({ userId, courseId });
+        if (!progress) {
+            progress = await CourseProgress.create({
+                userId,
+                courseId,
+                lectureProgress: []
+            });
+        }
+
+        // Find lecture in progress
+        const lectureIndex = progress.lectureProgress.findIndex(
+            (lp) => lp.lectureId.toString() === lectureId
+        );
+
+        if (lectureIndex !== -1) {
+            progress.lectureProgress[lectureIndex].viewed = true;
+        } else {
+            progress.lectureProgress.push({ lectureId, viewed: true });
+        }
+
+        // Recalculate percentage
+        const course = await Course.findById(courseId).populate('sections.lectures lectures');
+        if (!course) return res.status(404).json({ success: false, message: "Course not found" });
+
+        const allLectureIds = new Set();
+        course.lectures.forEach(l => allLectureIds.add(l._id.toString()));
+        course.sections.forEach(s => {
+            s.lectures.forEach(l => allLectureIds.add(l._id.toString()));
+        });
+        const totalLectures = allLectureIds.size;
+
+        const viewedLectures = progress.lectureProgress.filter(lp => lp.viewed).length;
+        const percentage = totalLectures > 0 ? Math.round((viewedLectures / totalLectures) * 100) : 0;
+
+        progress.completed = percentage === 100;
+        await progress.save();
+
+        // Update User model summary
+        await User.updateOne(
+            { _id: userId, "courseProgress.courseId": courseId },
+            { $set: { "courseProgress.$.progress": percentage } }
+        );
+
+        // Ensure it exists in user model (for cases where enrollment didn't init it)
+        const user = await User.findById(userId);
+        const hasSummary = user.courseProgress.some(cp => cp.courseId.toString() === courseId);
+        if (!hasSummary) {
+            await User.updateOne(
+                { _id: userId },
+                { $push: { courseProgress: { courseId, progress: percentage } } }
+            );
+        }
+
+        res.status(200).json({
+            success: true,
+            message: "Lecture progress updated",
+            progress: percentage,
+            completedLectures: progress.lectureProgress.filter(lp => lp.viewed).map(lp => lp.lectureId),
+            completed: progress.completed
+        });
+    } catch (err) {
+        console.error("Update Lecture Progress Error:", err);
+        res.status(500).json({
+            success: false,
+            message: "Internal Server Error Update Progress"
+        });
+    }
 };
 
 // --- Material Controllers ---

@@ -14,17 +14,21 @@ import {
 import { useAuthStore } from '../../../../store/useAuthStore';
 import { Button } from '../../../../components/ui/button';
 
-const StudentDashboardSidebar = () => {
-    const { logout } = useAuthStore();
 
+
+
+const StudentDashboardSidebar = () => {
+
+    const { logout } = useAuthStore();
+    const { authUser } = useAuthStore();
     const navItems = [
         { icon: LayoutDashboard, label: 'Dashboard', path: '/student/dashboard' },
         { icon: BookOpen, label: 'My Courses', path: '/student/courses' },
-        { icon: User, label: 'Class', path: '/student/class' },
-        { icon: FileText, label: 'Assignments', path: '/student/assignments' },
-        { icon: GraduationCap, label: 'Exams & Results', path: '/student/results' },
-        { icon: Library, label: 'Resource Library', path: '/student/library' },
-        { icon: Calendar, label: 'Class Schedule', path: '/student/schedule' },
+        // { icon: User, label: 'Class', path: '/student/class' },
+        // { icon: FileText, label: 'Assignments', path: '/student/assignments' },
+        // { icon: GraduationCap, label: 'Exams & Results', path: '/student/results' },
+        // { icon: Library, label: 'Resource Library', path: '/student/library' },
+        // { icon: Calendar, label: 'Class Schedule', path: '/student/schedule' },
     ];
 
     return (
@@ -36,7 +40,7 @@ const StudentDashboardSidebar = () => {
                         <GraduationCap className="size-5 text-white" />
                     </div>
                     <div className="flex flex-col">
-                        <span className="text-sm font-black uppercase tracking-tight leading-none text-white">Lincoln</span>
+                        <span className="text-sm font-black uppercase tracking-tight leading-none text-white">{authUser?.first_name}</span>
                         <span className="text-[9px] font-black text-zinc-500 uppercase tracking-[0.2em] leading-none mt-0.5">Student Area</span>
                     </div>
                 </div>

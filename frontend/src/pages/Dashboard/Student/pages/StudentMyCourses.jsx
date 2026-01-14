@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useMemo } from 'react'
 import { Button } from '@/components/ui/button'
 import {
     Card,
@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
-import { Separator } from "@/components/ui/separator"
+// import { Separator } from "@/components/ui/separator"
 import {
     BookOpen,
     Clock,
@@ -21,187 +21,111 @@ import {
     PlayCircle,
     ChevronRight,
     Users,
-    FileText,
-    CheckCircle2,
-    BookMarked,
+    // FileText,
+    // CheckCircle2,
+    // BookMarked,
     Download,
     Share2,
     MoreVertical,
     BarChart3,
     Target,
 } from 'lucide-react'
+import { useAuthStore } from '../../../../store/useAuthStore'
+import { Link } from 'react-router-dom'
+
+const bgColors = [
+    "bg-blue-500", "bg-purple-500", "bg-green-500", "bg-orange-500", "bg-pink-500"
+];
 
 const StudentMyCourses = () => {
-    // Mock data for enrolled courses
-    const enrolledCourses = [
-        {
-            id: 1,
-            title: "Advanced React Patterns",
-            instructor: "Sarah Johnson",
-            category: "Frontend Development",
-            progress: 75,
-            duration: "24 hours",
-            lessons: 48,
-            enrolledStudents: 2541,
-            rating: 4.8,
-            lastAccessed: "2 hours ago",
-            status: "In Progress",
-            thumbnailColor: "bg-blue-500",
-            completionDate: "Estimated: Dec 15, 2024",
-            nextLesson: "State Management with Zustand",
-        },
-        {
-            id: 2,
-            title: "Full-Stack Web Development",
-            instructor: "Michael Chen",
-            category: "Full Stack",
-            progress: 30,
-            duration: "42 hours",
-            lessons: 96,
-            enrolledStudents: 1872,
-            rating: 4.9,
-            lastAccessed: "1 day ago",
-            status: "In Progress",
-            thumbnailColor: "bg-green-500",
-            completionDate: "Estimated: Jan 20, 2025",
-            nextLesson: "Building REST APIs with Node.js",
-        },
-        {
-            id: 3,
-            title: "UI/UX Design Fundamentals",
-            instructor: "Alex Rodriguez",
-            category: "Design",
-            progress: 100,
-            duration: "18 hours",
-            lessons: 32,
-            enrolledStudents: 3120,
-            rating: 4.7,
-            lastAccessed: "Completed: Oct 28, 2024",
-            status: "Completed",
-            thumbnailColor: "bg-purple-500",
-            completionDate: "Completed: Oct 28, 2024",
-            certificate: true,
-        },
-        {
-            id: 4,
-            title: "Data Structures & Algorithms",
-            instructor: "Dr. James Wilson",
-            category: "Computer Science",
-            progress: 15,
-            duration: "36 hours",
-            lessons: 72,
-            enrolledStudents: 4215,
-            rating: 4.6,
-            lastAccessed: "3 days ago",
-            status: "In Progress",
-            thumbnailColor: "bg-orange-500",
-            completionDate: "Estimated: Feb 10, 2025",
-            nextLesson: "Binary Search Trees",
-        },
-        {
-            id: 5,
-            title: "DevOps Essentials",
-            instructor: "Priya Sharma",
-            category: "DevOps",
-            progress: 0,
-            duration: "28 hours",
-            lessons: 56,
-            enrolledStudents: 1568,
-            rating: 4.8,
-            lastAccessed: "Not started",
-            status: "Not Started",
-            thumbnailColor: "bg-red-500",
-            completionDate: "Start learning today",
-        },
-        {
-            id: 6,
-            title: "Mobile App Development",
-            instructor: "David Kim",
-            category: "Mobile",
-            progress: 90,
-            duration: "32 hours",
-            lessons: 64,
-            enrolledStudents: 2893,
-            rating: 4.9,
-            lastAccessed: "Yesterday",
-            status: "In Progress",
-            thumbnailColor: "bg-indigo-500",
-            completionDate: "Estimated: Nov 30, 2024",
-            nextLesson: "App Store Deployment",
-        },
-    ]
+    // Get real data from store
+    const { authUser } = useAuthStore();
+
+    const enrolledCourses = useMemo(() => {
+        if (!authUser?.enrolledcourses) return [];
+
+        return authUser.enrolledcourses.map((course, index) => {
+            // Assign a persistent color based on index
+            const colorIndex = index % bgColors.length;
+
+            // Find progress for this course in authUser.courseProgress
+            const progressEntry = authUser.courseProgress?.find(cp =>
+                (typeof cp.courseId === 'string' ? cp.courseId === course._id : cp.courseId?._id === course._id)
+            );
+            const progressValue = progressEntry ? progressEntry.progress : 0;
+            const totalLectures = course.lectures?.length || 0;
+            const completedLectures = Math.round((progressValue / 100) * totalLectures);
+
+            return {
+                id: course._id,
+                title: course.title,
+                category: course.category,
+                status: progressValue === 100 ? "Completed" : progressValue > 0 ? "In Progress" : "Not Started",
+                progress: progressValue,
+                lastAccessed: "Today",
+                thumbnailColor: bgColors[colorIndex],
+                enrolledStudents: course.studentsEnrolled?.length || 0,
+                rating: 4.8, // Mock rating or fetch if available
+                duration: "10h", // Mock duration or calc
+                lessons: totalLectures,
+                completedLessons: completedLectures,
+                completionDate: "TBD",
+                nextLesson: "Introduction",
+                thumbnail: course.thumbnail // Use real thumbnail if available
+            };
+        });
+    }, [authUser]);
 
     // Stats data
-    const stats = [
-        {
-            title: "Active Courses",
-            value: "4",
-            icon: BookOpen,
-            description: "Currently enrolled",
-            color: "bg-blue-500/10",
-            textColor: "text-blue-500",
-        },
-        {
-            title: "Hours Studied",
-            value: "156",
-            icon: Clock,
-            description: "This month",
-            color: "bg-green-500/10",
-            textColor: "text-green-500",
-        },
-        {
-            title: "Completion Rate",
-            value: "82%",
-            icon: TrendingUp,
-            description: "Overall progress",
-            color: "bg-purple-500/10",
-            textColor: "text-purple-500",
-        },
-        {
-            title: "Achievements",
-            value: "12",
-            icon: Award,
-            description: "Badges earned",
-            color: "bg-orange-500/10",
-            textColor: "text-orange-500",
-        },
-    ]
+    const stats = useMemo(() => {
+        const total = enrolledCourses.length;
+        const completed = enrolledCourses.filter(c => c.progress === 100).length;
+        const inProgress = enrolledCourses.filter(c => c.progress > 0 && c.progress < 100).length;
+        const avgProgress = total > 0
+            ? Math.round(enrolledCourses.reduce((acc, curr) => acc + curr.progress, 0) / total)
+            : 0;
 
-    // Recent activity
-    const recentActivity = [
-        {
-            id: 1,
-            action: "Completed lesson",
-            course: "Advanced React Patterns",
-            lesson: "Custom Hooks Deep Dive",
-            time: "2 hours ago",
-            icon: CheckCircle2,
-        },
-        {
-            id: 2,
-            action: "Submitted assignment",
-            course: "Full-Stack Web Development",
-            lesson: "CRUD API Implementation",
-            time: "1 day ago",
-            icon: FileText,
-        },
-        {
-            id: 3,
-            action: "Earned badge",
-            course: "UI/UX Design Fundamentals",
-            lesson: "Prototyping Master",
-            time: "2 days ago",
-            icon: Award,
-        },
-        {
-            id: 4,
-            action: "Joined course",
-            course: "DevOps Essentials",
-            lesson: "Course Introduction",
-            time: "3 days ago",
-            icon: BookMarked,
-        },
-    ]
+        return [
+            {
+                title: "Enrolled Courses",
+                value: total.toString(),
+                icon: BookOpen,
+                description: "Total courses",
+                color: "bg-blue-500/10",
+                textColor: "text-blue-500",
+            },
+            {
+                title: "In Progress",
+                value: inProgress.toString(),
+                icon: Clock,
+                description: "Currently learning",
+                color: "bg-green-500/10",
+                textColor: "text-green-500",
+            },
+            {
+                title: "Completion Rate",
+                value: `${avgProgress}%`,
+                icon: TrendingUp,
+                description: "Average progress",
+                color: "bg-purple-500/10",
+                textColor: "text-purple-500",
+            },
+            {
+                title: "Completed",
+                value: completed.toString(),
+                icon: Award,
+                description: "Finished courses",
+                color: "bg-orange-500/10",
+                textColor: "text-orange-500",
+            },
+        ];
+    }, [enrolledCourses]);
+
+
+
+    if (!authUser) {
+        return <div className="p-8 text-center">Loading profile...</div>;
+    }
 
     return (
         <div className="container mx-auto py-8 px-4 sm:px-6 lg:px-8 max-w-7xl">
@@ -248,7 +172,7 @@ const StudentMyCourses = () => {
             </div>
 
             {/* Main Content */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-1 gap-8">
                 {/* Course List - 2/3 width */}
                 <div className="lg:col-span-2">
                     <div className="flex items-center justify-between mb-6">
@@ -269,129 +193,144 @@ const StudentMyCourses = () => {
                     </div>
 
                     <div className="space-y-6">
-                        {enrolledCourses.map((course) => (
-                            <Card key={course.id} className="overflow-hidden border-border/50 hover:shadow-md transition-shadow">
-                                <div className="flex flex-col sm:flex-row">
-                                    {/* Thumbnail */}
-                                    <div className={`${course.thumbnailColor} sm:w-48 flex items-center justify-center p-8`}>
-                                        <div className="text-center">
-                                            <BookOpen className="h-12 w-12 text-white/90 mx-auto mb-3" />
-                                            <span className="text-white/90 font-semibold text-sm">{course.category}</span>
+                        {enrolledCourses.length === 0 ? (
+                            <div className="text-center py-10 border rounded-lg bg-muted/20">
+                                <BookOpen className="h-10 w-10 mx-auto text-muted-foreground mb-4" />
+                                <h3 className="text-lg font-medium">No courses enrolled yet</h3>
+                                <p className="text-muted-foreground mt-2">Browse our catalog to get started.</p>
+                                <Button className="mt-4" variant="outline">Browse Courses</Button>
+                            </div>
+                        ) : (
+                            enrolledCourses.map((course) => (
+                                <Card key={course.id} className="overflow-hidden border-border/50 hover:shadow-md transition-shadow">
+                                    <div className="flex flex-col sm:flex-row">
+                                        {/* Thumbnail */}
+                                        <div className={`${course.thumbnail ? '' : course.thumbnailColor} sm:w-48 flex items-center justify-center overflow-hidden bg-muted`}>
+                                            {course.thumbnail ? (
+                                                <img src={course.thumbnail} alt={course.title} className="w-full h-full object-cover" />
+                                            ) : (
+                                                <div className="p-8 text-center">
+                                                    <BookOpen className="h-12 w-12 text-white/90 mx-auto mb-3" />
+                                                    <span className="text-white/90 font-semibold text-sm">{course.category}</span>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* Course Details */}
+                                        <div className="flex-1">
+                                            <CardHeader className="pb-4">
+                                                <div className="flex items-start justify-between">
+                                                    <div className="space-y-2">
+                                                        <div className="flex items-center gap-2">
+                                                            <CardTitle className="text-lg">{course.title}</CardTitle>
+                                                            <Badge
+                                                                variant={
+                                                                    course.status === "Completed" ? "default" :
+                                                                        course.status === "In Progress" ? "secondary" :
+                                                                            "outline"
+                                                                }
+                                                                className="capitalize"
+                                                            >
+                                                                {course.status}
+                                                            </Badge>
+                                                        </div>
+                                                        <CardDescription className="flex items-center gap-4">
+                                                            <span className="flex items-center gap-1">
+                                                                <Users className="h-3.5 w-3.5" />
+                                                                {course.enrolledStudents.toLocaleString()} students
+                                                            </span>
+                                                            <span className="flex items-center gap-1">
+                                                                <Star className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />
+                                                                {course.rating}
+                                                            </span>
+                                                            <span className="flex items-center gap-1">
+                                                                <Clock className="h-3.5 w-3.5" />
+                                                                {course.duration}
+                                                            </span>
+                                                        </CardDescription>
+                                                    </div>
+                                                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                                                        <MoreVertical className="h-4 w-4" />
+                                                    </Button>
+                                                </div>
+                                            </CardHeader>
+
+                                            <CardContent className="pb-4">
+                                                <div className="space-y-4">
+                                                    {/* Progress Bar */}
+                                                    <div>
+                                                        <div className="flex justify-between text-sm mb-2">
+                                                            <span className="font-medium">Progress</span>
+                                                            <span className="text-muted-foreground">{course.progress}%</span>
+                                                        </div>
+                                                        <Progress value={course.progress} className="h-2" />
+                                                    </div>
+
+                                                    {/* Course Info */}
+                                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                                                        <div className="space-y-2">
+                                                            <div className="flex items-center gap-2 text-muted-foreground">
+                                                                <BookOpen className="h-4 w-4" />
+                                                                <span>{course.completedLessons} / {course.lessons} lessons completed</span>
+                                                            </div>
+                                                            <div className="flex items-center gap-2 text-muted-foreground">
+                                                                <Calendar className="h-4 w-4" />
+                                                                <span>{course.completionDate}</span>
+                                                            </div>
+                                                        </div>
+                                                        <div className="space-y-2">
+                                                            {course.nextLesson && (
+                                                                <div className="flex items-center gap-2">
+                                                                    <PlayCircle className="h-4 w-4 text-primary" />
+                                                                    <span className="font-medium">Next: {course.nextLesson}</span>
+                                                                </div>
+                                                            )}
+                                                            <div className="flex items-center gap-2 text-muted-foreground">
+                                                                <Clock className="h-4 w-4" />
+                                                                <span>Last accessed: {course.lastAccessed}</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </CardContent>
+
+                                            <CardFooter className="border-t pt-4">
+                                                <div className="flex w-full justify-between">
+                                                    <div className="flex gap-2">
+                                                        <Link to={`/course/${course.id}/lectures`}>
+                                                            <Button
+                                                                variant={course.status === "Not Started" ? "default" : "outline"}
+                                                                size="sm"
+                                                                className="gap-2"
+                                                            >
+                                                                <PlayCircle className="h-4 w-4" />
+                                                                {course.status === "Not Started" ? "Start Learning" : "Continue"}
+                                                            </Button>
+                                                        </Link>
+                                                        {course.certificate && (
+                                                            <Button variant="ghost" size="sm" className="gap-2">
+                                                                <Award className="h-4 w-4" />
+                                                                View Certificate
+                                                            </Button>
+                                                        )}
+                                                    </div>
+                                                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                                                        <Share2 className="h-4 w-4" />
+                                                    </Button>
+                                                </div>
+                                            </CardFooter>
                                         </div>
                                     </div>
-
-                                    {/* Course Details */}
-                                    <div className="flex-1">
-                                        <CardHeader className="pb-4">
-                                            <div className="flex items-start justify-between">
-                                                <div className="space-y-2">
-                                                    <div className="flex items-center gap-2">
-                                                        <CardTitle className="text-lg">{course.title}</CardTitle>
-                                                        <Badge
-                                                            variant={
-                                                                course.status === "Completed" ? "default" :
-                                                                    course.status === "In Progress" ? "secondary" :
-                                                                        "outline"
-                                                            }
-                                                            className="capitalize"
-                                                        >
-                                                            {course.status}
-                                                        </Badge>
-                                                    </div>
-                                                    <CardDescription className="flex items-center gap-4">
-                                                        <span className="flex items-center gap-1">
-                                                            <Users className="h-3.5 w-3.5" />
-                                                            {course.enrolledStudents.toLocaleString()} students
-                                                        </span>
-                                                        <span className="flex items-center gap-1">
-                                                            <Star className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />
-                                                            {course.rating}
-                                                        </span>
-                                                        <span className="flex items-center gap-1">
-                                                            <Clock className="h-3.5 w-3.5" />
-                                                            {course.duration}
-                                                        </span>
-                                                    </CardDescription>
-                                                </div>
-                                                <Button variant="ghost" size="icon" className="h-8 w-8">
-                                                    <MoreVertical className="h-4 w-4" />
-                                                </Button>
-                                            </div>
-                                        </CardHeader>
-
-                                        <CardContent className="pb-4">
-                                            <div className="space-y-4">
-                                                {/* Progress Bar */}
-                                                <div>
-                                                    <div className="flex justify-between text-sm mb-2">
-                                                        <span className="font-medium">Progress</span>
-                                                        <span className="text-muted-foreground">{course.progress}%</span>
-                                                    </div>
-                                                    <Progress value={course.progress} className="h-2" />
-                                                </div>
-
-                                                {/* Course Info */}
-                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-                                                    <div className="space-y-2">
-                                                        <div className="flex items-center gap-2 text-muted-foreground">
-                                                            <BookOpen className="h-4 w-4" />
-                                                            <span>{course.lessons} lessons</span>
-                                                        </div>
-                                                        <div className="flex items-center gap-2 text-muted-foreground">
-                                                            <Calendar className="h-4 w-4" />
-                                                            <span>{course.completionDate}</span>
-                                                        </div>
-                                                    </div>
-                                                    <div className="space-y-2">
-                                                        {course.nextLesson && (
-                                                            <div className="flex items-center gap-2">
-                                                                <PlayCircle className="h-4 w-4 text-primary" />
-                                                                <span className="font-medium">Next: {course.nextLesson}</span>
-                                                            </div>
-                                                        )}
-                                                        <div className="flex items-center gap-2 text-muted-foreground">
-                                                            <Clock className="h-4 w-4" />
-                                                            <span>Last accessed: {course.lastAccessed}</span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </CardContent>
-
-                                        <CardFooter className="border-t pt-4">
-                                            <div className="flex w-full justify-between">
-                                                <div className="flex gap-2">
-                                                    <Button
-                                                        variant={course.status === "Not Started" ? "default" : "outline"}
-                                                        size="sm"
-                                                        className="gap-2"
-                                                    >
-                                                        <PlayCircle className="h-4 w-4" />
-                                                        {course.status === "Not Started" ? "Start Learning" : "Continue"}
-                                                    </Button>
-                                                    {course.certificate && (
-                                                        <Button variant="ghost" size="sm" className="gap-2">
-                                                            <Award className="h-4 w-4" />
-                                                            View Certificate
-                                                        </Button>
-                                                    )}
-                                                </div>
-                                                <Button variant="ghost" size="icon" className="h-8 w-8">
-                                                    <Share2 className="h-4 w-4" />
-                                                </Button>
-                                            </div>
-                                        </CardFooter>
-                                    </div>
-                                </div>
-                            </Card>
-                        ))}
+                                </Card>
+                            ))
+                        )}
                     </div>
                 </div>
 
-                {/* Sidebar - 1/3 width */}
-                <div className="space-y-6">
+                Sidebar - 1/3 width
+                <div className="space-y-6 hidden">
                     {/* Upcoming Deadlines */}
-                    <Card>
+                    {/* <Card>
                         <CardHeader className="pb-4">
                             <CardTitle className="text-lg flex items-center gap-2">
                                 <Calendar className="h-5 w-5" />
@@ -427,10 +366,10 @@ const StudentMyCourses = () => {
                                 <ChevronRight className="h-4 w-4" />
                             </Button>
                         </CardFooter>
-                    </Card>
+                    </Card> */}
 
                     {/* Recent Activity */}
-                    <Card>
+                    {/* <Card>
                         <CardHeader className="pb-4">
                             <CardTitle className="text-lg flex items-center gap-2">
                                 <BarChart3 className="h-5 w-5" />
@@ -439,18 +378,22 @@ const StudentMyCourses = () => {
                             <CardDescription>Your learning journey</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                            {recentActivity.map((activity) => (
-                                <div key={activity.id} className="flex gap-3 pb-4 border-b last:border-0 last:pb-0">
-                                    <div className={`h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0`}>
-                                        <activity.icon className="h-5 w-5 text-primary" />
+                            {recentActivity.length === 0 ? (
+                                <p className="text-sm text-muted-foreground text-center py-4">No recent activity</p>
+                            ) : (
+                                recentActivity.map((activity) => (
+                                    <div key={activity.id} className="flex gap-3 pb-4 border-b last:border-0 last:pb-0">
+                                        <div className={`h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0`}>
+                                            <activity.icon className="h-5 w-5 text-primary" />
+                                        </div>
+                                        <div className="space-y-1">
+                                            <p className="font-medium text-sm">{activity.action}</p>
+                                            <p className="text-sm text-muted-foreground">{activity.lesson}</p>
+                                            <p className="text-xs text-muted-foreground">{activity.course} • {activity.time}</p>
+                                        </div>
                                     </div>
-                                    <div className="space-y-1">
-                                        <p className="font-medium text-sm">{activity.action}</p>
-                                        <p className="text-sm text-muted-foreground">{activity.lesson}</p>
-                                        <p className="text-xs text-muted-foreground">{activity.course} • {activity.time}</p>
-                                    </div>
-                                </div>
-                            ))}
+                                ))
+                            )}
                         </CardContent>
                         <CardFooter>
                             <Button variant="ghost" className="w-full gap-2">
@@ -458,10 +401,10 @@ const StudentMyCourses = () => {
                                 <ChevronRight className="h-4 w-4" />
                             </Button>
                         </CardFooter>
-                    </Card>
+                    </Card> */}
 
                     {/* Learning Goals */}
-                    <Card>
+                    {/* <Card>
                         <CardHeader className="pb-4">
                             <CardTitle className="text-lg flex items-center gap-2">
                                 <Target className="h-5 w-5" />
@@ -489,7 +432,7 @@ const StudentMyCourses = () => {
                                 Update Goals
                             </Button>
                         </CardFooter>
-                    </Card>
+                    </Card> */}
                 </div>
             </div>
         </div>
