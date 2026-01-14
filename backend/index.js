@@ -19,14 +19,13 @@ const allowedOrigins = [
 ];
 
 app.use(cors({
-    origin: (origin, callback) => {
-        // allow requests with no origin (like mobile apps or curl requests)
+    origin: function (origin, callback) {
         if (!origin) return callback(null, true);
-        if (allowedOrigins.indexOf(origin) === -1) {
-            const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
-            return callback(new Error(msg), false);
+        if (allowedOrigins.indexOf(origin) !== -1 || origin.endsWith(".vercel.app")) {
+            callback(null, true);
+        } else {
+            callback(new Error('Not allowed by CORS'));
         }
-        return callback(null, true);
     },
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
@@ -34,6 +33,15 @@ app.use(cors({
 }));
 app.use(cookieParser())
 
+// Health check and environment verification
+app.get('/api/health', (req, res) => {
+    res.status(200).json({
+        status: 'ok',
+        environment: process.env.NODE_ENV,
+        hasMongoUrl: !!process.env.MONGO_URL,
+        hasJwtSecret: !!process.env.JWT_SECRET
+    });
+});
 
 // apis 
 app.use('/api/users', require('./router/user.router'));
@@ -44,15 +52,23 @@ app.use('/api/classes', require('./router/class.router'));
 app.use('/api/departments', require('./router/department.router'));
 app.use('/api/timetable', require('./router/timetable.router'));
 
-
 app.get('/', (req, res) => {
     res.send('Lincoln LMS API is running');
+});
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+    console.error('SERVER ERROR:', err);
+    res.status(500).json({
+        success: false,
+        message: 'Internal Server Error',
+        error: process.env.NODE_ENV === 'development' ? err.message : 'Detailed error in server logs'
+    });
 });
 
 // Database - connection
 connectionDB();
 
-// Handle port listening - Vercel handles this automatically, but for local dev:
 if (process.env.NODE_ENV !== 'production') {
     app.listen(port, () => {
         console.log(`Server is running locally on port ${port}`);
