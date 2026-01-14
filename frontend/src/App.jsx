@@ -30,11 +30,15 @@ import StudentDashboard from './pages/Dashboard/Student/StudentDashboard'
 import StudentHome from './pages/Dashboard/Student/pages/StudentDashboardHome'
 import ManagementDashboard from './pages/Dashboard/Management/ManagementDashboard'
 import ManagementHome from './pages/Dashboard/Management/pages/ManagementHome'
+import ManagementClasses from './pages/Dashboard/Management/pages/ManagementClasses'
 import SettingPage from './pages/Settings/SettingPage'
 import CoursesTeacherDashboard from './pages/Dashboard/Teacher/Pages/CoursesTeacherDashboard'
 import StudentMyCourses from './pages/Dashboard/Student/pages/StudentMyCourses'
 import StudentClassPage from './pages/Dashboard/Student/pages/StudentClassPage'
 import StudentAssingment from './pages/Dashboard/Student/pages/StudentAssingment'
+import AddClass from './pages/Dashboard/Management/pages/AddClass'
+import AddDepartment from './pages/Dashboard/Management/pages/AddDepartment'
+import AddTimetable from './pages/Dashboard/Management/pages/AddTimetable'
 
 
 const App = () => {
@@ -87,14 +91,13 @@ const App = () => {
               ? (authUser.isVerified ? <Navigate to="/" /> : <VerifyEmail />)
               : <Navigate to="/login" />
           } />
-          <Route path="/profile" element={authUser ? <ProfilePage /> : <Navigate to="/login" />} />
+          <Route path="/profile" element={authUser && authUser.isVerified ? <ProfilePage /> : <Navigate to="/login" />} />
 
           {/* Course Routes */}
-          <Route path="/courses" element={authUser ? <AllCoursesPage /> : <Navigate to="/login" />} />
-          <Route path="/course/:id" element={authUser ? <SingleCoursePage /> : <Navigate to="/login" />} />
-          <Route path="/course/:id/lectures" element={authUser ? <LecturesPage /> : <Navigate to="/login" />} />
+          <Route path="/courses" element={authUser && authUser.isVerified ? <AllCoursesPage /> : <Navigate to="/login" />} />
+          <Route path="/course/:id" element={authUser && authUser.isVerified ? <SingleCoursePage /> : <Navigate to="/login" />} />
+          <Route path="/course/:id/lectures" element={authUser && authUser.isVerified ? <LecturesPage /> : <Navigate to="/login" />} />
 
-          {/* Teacher Routes */}
           {/* Teacher Routes */}
           <Route path="/teacher" element={
             authUser && (authUser.role === 'teacher' || authUser.role === 'admin')
@@ -149,6 +152,10 @@ const App = () => {
               : <Navigate to="/" />
           }>
             <Route path="dashboard" element={<ManagementHome />} />
+            <Route path="classes" element={<ManagementClasses />} />
+            <Route path="classes/new" element={<AddClass />} />
+            <Route path="departments" element={<AddDepartment />} />
+            <Route path="timetable" element={<AddTimetable />} />
             <Route path="staff" element={<div className="p-4 text-white">Staff Directory (Coming Soon)</div>} />
             <Route path="finance" element={<div className="p-4 text-white">Financials (Coming Soon)</div>} />
             <Route path="reports" element={<div className="p-4 text-white">Performance Reports (Coming Soon)</div>} />

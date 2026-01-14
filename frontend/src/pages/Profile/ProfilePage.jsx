@@ -1,9 +1,9 @@
 import React, { useState, memo, useMemo } from 'react';
 import { useAuthStore } from '../../store/useAuthStore';
 import { AnimatePresence, motion as Motion } from 'framer-motion';
-import { 
-    User, Mail, Phone, MapPin, Calendar, Shield, Camera, 
-    Edit2, Users, GraduationCap, UserCheck, Briefcase, 
+import {
+    User, Mail, Phone, MapPin, Calendar, Shield, Camera,
+    Edit2, Users, GraduationCap, UserCheck, Briefcase,
     Activity, Lock, ChevronRight, ExternalLink, Sparkles,
     CheckCircle2, Clock, Map, Fingerprint, Info, ShieldCheck,
     ArrowUpRight, Bookmark, Settings, Loader, X, LogOut, Key, Image as ImageIcon
@@ -12,11 +12,11 @@ import { toast } from 'sonner';
 import { Button } from '../../components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/tabs";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
 } from "../../components/ui/dropdown-menu";
 
 // --- Theme Config ---
@@ -74,14 +74,14 @@ const Modal = ({ isOpen, onClose, title, icon: Icon, children }) => (
     <AnimatePresence>
         {isOpen && (
             <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-                <Motion.div 
+                <Motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                     onClick={onClose}
                     className="absolute inset-0 bg-black/60 backdrop-blur-sm"
                 />
-                <Motion.div 
+                <Motion.div
                     initial={{ opacity: 0, scale: 0.95, y: 20 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -175,7 +175,7 @@ const ProfilePage = () => {
         if (selectedImage) {
             submissionData.profilePicture = selectedImage;
         }
-        
+
         const success = await updateProfile(submissionData);
         if (success) {
             setIsEditModalOpen(false);
@@ -200,28 +200,28 @@ const ProfilePage = () => {
     };
 
     // Meta metadata
-    const registeredAt = useMemo(() => 
+    const registeredAt = useMemo(() =>
         new Date(authUser?.createdAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
-    , [authUser?.createdAt]);
+        , [authUser?.createdAt]);
 
     return (
         <div className="min-h-screen bg-[#fafafa] dark:bg-[#09090b] selection:bg-zinc-900 selection:text-white dark:selection:bg-white dark:selection:text-zinc-900 font-sans">
-            
+
             {/* Header Section */}
             <header className="bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 pt-16 pb-12">
                 <div className="container mx-auto px-4 max-w-6xl">
                     <div className="flex flex-col md:flex-row items-center md:items-end justify-between gap-8">
-                        
+
                         <div className="flex flex-col md:flex-row items-center gap-8">
                             {/* Profile Image */}
                             <div className="relative group">
                                 <div className="size-36 rounded-md overflow-hidden border-4 border-white dark:border-zinc-800 shadow-xl bg-zinc-50 dark:bg-zinc-800 relative">
-                                    <img 
-                                        src={selectedImage || authUser?.profilePicture || "/avatar.png"} 
-                                        className="size-full object-cover" 
-                                        alt="Professional Identity" 
+                                    <img
+                                        src={selectedImage || authUser?.profilePicture || "/avatar.png"}
+                                        className="size-full object-cover"
+                                        alt="Professional Identity"
                                     />
-                                    <div 
+                                    <div
                                         onClick={() => setIsImageModalOpen(true)}
                                         className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-[2px] cursor-pointer"
                                     >
@@ -238,24 +238,24 @@ const ProfilePage = () => {
 
                             {/* Essential Info */}
                             <div className="text-center md:text-left space-y-2">
-                            <div className="flex flex-col items-center md:items-start gap-1">
-                                <h1 className="text-3xl md:text-4xl font-black uppercase tracking-tight text-zinc-900 dark:text-white">
-                                    {authUser?.firstName} {authUser?.lastName}
-                                </h1>
-                                <div className="flex items-center gap-2 text-sm font-bold text-zinc-400 dark:text-zinc-500">
-                                    <span>@{authUser?.userName}</span>
-                                    <Badge className="bg-zinc-100 text-zinc-600 border-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:border-zinc-700">{role} Node</Badge>
+                                <div className="flex flex-col items-center md:items-start gap-1">
+                                    <h1 className="text-3xl md:text-4xl font-black uppercase tracking-tight text-zinc-900 dark:text-white">
+                                        {authUser?.firstName} {authUser?.lastName}
+                                    </h1>
+                                    <div className="flex items-center gap-2 text-sm font-bold text-zinc-400 dark:text-zinc-500">
+                                        <span>@{authUser?.userName}</span>
+                                        <Badge className="bg-zinc-100 text-zinc-600 border-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:border-zinc-700">{role} Node</Badge>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
 
-                    {/* Action Set */}
-                    <div className="flex items-center gap-2">
+                        {/* Action Set */}
+                        <div className="flex items-center gap-2">
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
-                                    <Button 
-                                        variant="outline" 
+                                    <Button
+                                        variant="outline"
                                         className="rounded-md size-11 p-0 border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-all text-zinc-400 hover:text-red-600 shadow-sm"
                                     >
                                         <Settings className="size-5" />
@@ -263,7 +263,7 @@ const ProfilePage = () => {
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end" className="w-56 bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 p-2 rounded-md shadow-2xl">
                                     <h4 className="px-3 py-2 text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Settings</h4>
-                                    <DropdownMenuItem 
+                                    <DropdownMenuItem
                                         onClick={() => setIsEditModalOpen(true)}
                                         className="gap-3 py-3 rounded-md cursor-pointer group focus:bg-red-50 dark:focus:bg-red-900/10 focus:text-red-600"
                                     >
@@ -273,7 +273,7 @@ const ProfilePage = () => {
                                         <span className="font-bold text-xs uppercase tracking-wider">Edit Profile</span>
                                     </DropdownMenuItem>
 
-                                    <DropdownMenuItem 
+                                    <DropdownMenuItem
                                         onClick={() => setIsPasswordModalOpen(true)}
                                         className="gap-3 py-3 rounded-md cursor-pointer group focus:bg-red-50 dark:focus:bg-red-900/10 focus:text-red-600"
                                     >
@@ -283,7 +283,7 @@ const ProfilePage = () => {
                                         <span className="font-bold text-xs uppercase tracking-wider">Update Password</span>
                                     </DropdownMenuItem>
 
-                                    <DropdownMenuItem 
+                                    <DropdownMenuItem
                                         onClick={() => setIsImageModalOpen(true)}
                                         className="gap-3 py-3 rounded-md cursor-pointer group focus:bg-red-50 dark:focus:bg-red-900/10 focus:text-red-600"
                                     >
@@ -311,12 +311,12 @@ const ProfilePage = () => {
 
             <main className="container mx-auto px-4 py-12 max-w-6xl">
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8 outline-none">
-                    
+
                     <div className="flex justify-center border-b border-zinc-200 dark:border-zinc-800">
                         <TabsList className="bg-transparent h-auto p-0 gap-2 md:gap-8 flex-wrap justify-center">
                             {['overview', 'details', 'connectivity', 'security'].map((tab) => (
-                                <TabsTrigger 
-                                    key={tab} 
+                                <TabsTrigger
+                                    key={tab}
                                     value={tab}
                                     className="px-6 py-4 mb-0 text-[10px] font-black uppercase tracking-[0.2em] relative data-[state=active]:text-red-600 data-[state=active]:shadow-none bg-transparent transition-all border-b-2 border-transparent data-[state=active]:border-red-600 rounded-none cursor-pointer hover:text-red-600/70"
                                 >
@@ -328,7 +328,7 @@ const ProfilePage = () => {
 
                     <AnimatePresence mode="wait">
                         <TabsContent value="overview">
-                            <Motion.div 
+                            <Motion.div
                                 initial={{ opacity: 0, y: 10 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 className="grid grid-cols-1 md:grid-cols-12 gap-8"
@@ -368,6 +368,26 @@ const ProfilePage = () => {
                                             </div>
                                         </DetailCard>
                                     </div>
+
+                                    {/* Course Progress Stats */}
+                                    <DetailCard title="Learning Progress" icon={GraduationCap}>
+                                        <div className="p-6 grid grid-cols-2 gap-6">
+                                            <div className="flex flex-col items-center justify-center p-4 bg-emerald-50 dark:bg-emerald-900/10 rounded-md border border-emerald-100 dark:border-emerald-900/20">
+                                                <CheckCircle2 className="size-6 text-emerald-600 mb-2" />
+                                                <span className="text-2xl font-black text-emerald-600">
+                                                    {authUser?.courseProgress?.filter(cp => cp.progress === 100).length || 0}
+                                                </span>
+                                                <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600/70">Completed</span>
+                                            </div>
+                                            <div className="flex flex-col items-center justify-center p-4 bg-blue-50 dark:bg-blue-900/10 rounded-md border border-blue-100 dark:border-blue-900/20">
+                                                <Clock className="size-6 text-blue-600 mb-2" />
+                                                <span className="text-2xl font-black text-blue-600">
+                                                    {authUser?.courseProgress?.filter(cp => cp.progress > 0 && cp.progress < 100).length || 0}
+                                                </span>
+                                                <span className="text-[10px] font-black uppercase tracking-widest text-blue-600/70">In Progress</span>
+                                            </div>
+                                        </div>
+                                    </DetailCard>
                                 </div>
 
                                 {/* Sidebar Meta */}
@@ -409,7 +429,7 @@ const ProfilePage = () => {
                         </TabsContent>
 
                         <TabsContent value="details">
-                            <Motion.div 
+                            <Motion.div
                                 initial={{ opacity: 0 }}
                                 animate={{ opacity: 1 }}
                                 className="grid grid-cols-1 md:grid-cols-2 gap-8"
@@ -439,7 +459,7 @@ const ProfilePage = () => {
                         </TabsContent>
 
                         <TabsContent value="connectivity">
-                            <Motion.div 
+                            <Motion.div
                                 initial={{ opacity: 0 }}
                                 animate={{ opacity: 1 }}
                                 className="space-y-8"
@@ -451,7 +471,7 @@ const ProfilePage = () => {
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                     {/* Dynamic rendering based on role from schema relational fields */}
-                                    
+
                                     {role === 'parent' && (
                                         <DetailCard title="Linked Children" icon={Users} className="md:col-span-2">
                                             <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -507,7 +527,7 @@ const ProfilePage = () => {
                         </TabsContent>
 
                         <TabsContent value="security">
-                            <Motion.div 
+                            <Motion.div
                                 initial={{ opacity: 0, y: 10 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 className="grid grid-cols-1 md:grid-cols-12 gap-8"
@@ -541,7 +561,7 @@ const ProfilePage = () => {
                                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                                                 <div className="space-y-2 sm:col-span-2">
                                                     <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Current Password</label>
-                                                    <input 
+                                                    <input
                                                         type="password"
                                                         name="oldPassword"
                                                         required
@@ -553,7 +573,7 @@ const ProfilePage = () => {
                                                 </div>
                                                 <div className="space-y-2">
                                                     <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">New Password</label>
-                                                    <input 
+                                                    <input
                                                         type="password"
                                                         name="newPassword"
                                                         required
@@ -565,7 +585,7 @@ const ProfilePage = () => {
                                                 </div>
                                                 <div className="space-y-2">
                                                     <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Confirm New Password</label>
-                                                    <input 
+                                                    <input
                                                         type="password"
                                                         name="confirmPassword"
                                                         required
@@ -577,7 +597,7 @@ const ProfilePage = () => {
                                                 </div>
                                             </div>
                                             <div className="flex justify-end pt-4">
-                                                <Button 
+                                                <Button
                                                     type="submit"
                                                     disabled={isUpdatingPassword}
                                                     className="bg-red-600 hover:bg-red-700 text-white font-black uppercase tracking-widest px-8 rounded-md h-12 shadow-lg shadow-red-600/20 active:scale-95 transition-all"
@@ -650,7 +670,7 @@ const ProfilePage = () => {
                             />
                         </div>
                     </div>
-                    
+
                     <div className="space-y-2">
                         <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Handle (@)</label>
                         <input
@@ -755,10 +775,10 @@ const ProfilePage = () => {
             >
                 <div className="flex flex-col items-center gap-6 py-4">
                     <div className="relative group size-48 rounded-md overflow-hidden border-4 border-zinc-100 dark:border-zinc-800 shadow-xl">
-                        <img 
-                            src={selectedImage || authUser?.profilePicture || "/avatar.png"} 
-                            className="size-full object-cover" 
-                            alt="Preview" 
+                        <img
+                            src={selectedImage || authUser?.profilePicture || "/avatar.png"}
+                            className="size-full object-cover"
+                            alt="Preview"
                         />
                         <label className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
                             <Camera className="size-8 text-white mb-2" />

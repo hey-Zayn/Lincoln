@@ -37,5 +37,38 @@ const protectedRoute = async (req, res, next) => {
     }
 }
 
+const isManagement = async (req, res, next) => {
+    try {
+        if (req.user.role !== "management" && req.user.role !== "admin") {
+            return res.status(403).json({
+                success: false,
+                message: "Access denied. Management only."
+            });
+        }
+        next();
+    } catch (error) {
+        return res.status(500).json({
+            success: false,
+            message: "Server error"
+        });
+    }
+};
 
-module.exports = protectedRoute
+const isAdmin = async (req, res, next) => {
+    try {
+        if (req.user.role !== "admin") {
+            return res.status(403).json({
+                success: false,
+                message: "Access denied. Admin only."
+            });
+        }
+        next();
+    } catch (error) {
+        return res.status(500).json({
+            success: false,
+            message: "Server error"
+        });
+    }
+};
+
+module.exports = { protectedRoute, isManagement, isAdmin };

@@ -12,6 +12,7 @@ import {
 } from '../../components/ui/card';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
+import { RadioGroup, RadioGroupItem } from '../../components/ui/radio-group';
 import {
     Mail,
     Lock,
@@ -25,10 +26,14 @@ import {
     MapPin,
     AtSign,
     CheckCircle2,
-    Fingerprint
+    Fingerprint,
+    GraduationCap,
+    BookOpen,
+    Briefcase,
+    School,
+    Users
 } from 'lucide-react';
 import { motion as Motion, AnimatePresence } from 'framer-motion';
-import RoleSelector from '../../components/auth/RoleSelector';
 
 const Signup = () => {
     const [step, setStep] = useState(1);
@@ -42,7 +47,9 @@ const Signup = () => {
         address: "",
         nationalID: "",
         password: "",
-        role: "student"
+        role: "", // Empty initially, user will choose
+        expertise: "", // For teachers
+        institution: "", // For teachers/students
     });
     const { signup, isSigningUp } = useAuthStore();
     const navigate = useNavigate();
@@ -51,18 +58,34 @@ const Signup = () => {
         setFormData({ ...formData, [e.target.id]: e.target.value });
     };
 
-    const handleRoleChange = (role) => {
-        setFormData({ ...formData, role });
+    const handleRoleChange = (value) => {
+        setFormData({ ...formData, role: value });
     };
 
-    const nextStep = () => setStep(prev => Math.min(prev + 1, 3));
+    const nextStep = () => {
+        // Validate current step before proceeding
+        if (step === 1 && !formData.role) {
+            alert("Please select an account type to continue");
+            return;
+        }
+        setStep(prev => Math.min(prev + 1, 3));
+    };
+
     const prevStep = () => setStep(prev => Math.max(prev - 1, 1));
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+
+        // Validate all required fields
+        if (!formData.role) {
+            alert("Please select an account type");
+            return;
+        }
+
         const res = await signup(formData);
         if (res?.success) {
-            navigate('/verify-email', { state: { email: formData.email } });
+            const redirectPath = formData.role === 'teacher' ? '/teacher/dashboard' : '/verify-email';
+            navigate(redirectPath, { state: { email: formData.email, role: formData.role } });
         }
     };
 
@@ -105,14 +128,14 @@ const Signup = () => {
                             </div>
                         </div>
                         <CardTitle className="text-3xl font-black dark:text-white tracking-tight">
-                            {step === 1 && "Start Your Journey"}
-                            {step === 2 && "Tell Us About Yourself"}
-                            {step === 3 && "Finalize Your Profile"}
+                            {step === 1 && "Choose Your Account Type"}
+                            {step === 2 && "Create Your Account"}
+                            {step === 3 && "Complete Your Profile"}
                         </CardTitle>
                         <CardDescription className="text-slate-500 dark:text-slate-400">
-                            {step === 1 && "Create your account credentials to get started."}
-                            {step === 2 && "Enter your basic contact details for institutional records."}
-                            {step === 3 && "Select your role and provide your campus address."}
+                            {step === 1 && "Select whether you want to join as a student or teacher"}
+                            {step === 2 && "Enter your basic account credentials"}
+                            {step === 3 && "Provide additional information to complete registration"}
                         </CardDescription>
                     </CardHeader>
 
@@ -122,6 +145,139 @@ const Signup = () => {
                                 {step === 1 && (
                                     <Motion.div
                                         key="step1"
+                                        variants={stepVariants}
+                                        initial="hidden"
+                                        animate="visible"
+                                        exit="exit"
+                                        className="space-y-6"
+                                    >
+                                        <div className="space-y-3">
+                                            <Label className="text-lg font-semibold">I want to join as a:</Label>
+                                            <RadioGroup
+                                                value={formData.role}
+                                                onValueChange={handleRoleChange}
+                                                className="grid gap-4"
+                                            >
+                                                {/* Student Option */}
+                                                <div className={`
+                          relative border-2 rounded-lg p-4 cursor-pointer transition-all duration-300
+                          ${formData.role === 'student'
+                                                        ? 'border-blue-600 bg-blue-50 dark:bg-blue-950/30 ring-2 ring-blue-600/20'
+                                                        : 'border-gray-200 dark:border-zinc-700 hover:border-blue-400 dark:hover:border-blue-600'
+                                                    }
+                        `}>
+                                                    <RadioGroupItem value="student" id="student" className="sr-only" />
+                                                    <Label
+                                                        htmlFor="student"
+                                                        className="flex items-center gap-4 cursor-pointer w-full"
+                                                    >
+                                                        <div className={`
+                              size-12 rounded-full flex items-center justify-center
+                              ${formData.role === 'student'
+                                                                ? 'bg-blue-100 dark:bg-blue-900'
+                                                                : 'bg-gray-100 dark:bg-zinc-800'
+                                                            }
+                            `}>
+                                                            <GraduationCap className={`
+                                size-6
+                                ${formData.role === 'student'
+                                                                    ? 'text-blue-600 dark:text-blue-400'
+                                                                    : 'text-gray-500 dark:text-gray-400'
+                                                                }
+                              `} />
+                                                        </div>
+                                                        <div className="flex-1">
+                                                            <div className="font-bold text-lg">Student</div>
+                                                            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                                                                Enroll in courses, complete assignments, and track your learning progress
+                                                            </p>
+                                                        </div>
+                                                        {formData.role === 'student' && (
+                                                            <CheckCircle2 className="size-6 text-blue-600 dark:text-blue-400" />
+                                                        )}
+                                                    </Label>
+                                                </div>
+
+                                                {/* Teacher Option */}
+                                                <div className={`
+                          relative border-2 rounded-lg p-4 cursor-pointer transition-all duration-300
+                          ${formData.role === 'teacher'
+                                                        ? 'border-red-600 bg-red-50 dark:bg-red-950/30 ring-2 ring-red-600/20'
+                                                        : 'border-gray-200 dark:border-zinc-700 hover:border-red-400 dark:hover:border-red-600'
+                                                    }
+                        `}>
+                                                    <RadioGroupItem value="teacher" id="teacher" className="sr-only" />
+                                                    <Label
+                                                        htmlFor="teacher"
+                                                        className="flex items-center gap-4 cursor-pointer w-full"
+                                                    >
+                                                        <div className={`
+                              size-12 rounded-full flex items-center justify-center
+                              ${formData.role === 'teacher'
+                                                                ? 'bg-red-100 dark:bg-red-900'
+                                                                : 'bg-gray-100 dark:bg-zinc-800'
+                                                            }
+                            `}>
+                                                            <BookOpen className={`
+                                size-6
+                                ${formData.role === 'teacher'
+                                                                    ? 'text-red-600 dark:text-red-400'
+                                                                    : 'text-gray-500 dark:text-gray-400'
+                                                                }
+                              `} />
+                                                        </div>
+                                                        <div className="flex-1">
+                                                            <div className="font-bold text-lg">Teacher / Instructor</div>
+                                                            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                                                                Create and manage courses, teach students, and grow your educational impact
+                                                            </p>
+                                                        </div>
+                                                        {formData.role === 'teacher' && (
+                                                            <CheckCircle2 className="size-6 text-red-600 dark:text-red-400" />
+                                                        )}
+                                                    </Label>
+                                                </div>
+                                            </RadioGroup>
+                                        </div>
+
+                                        {/* Role-specific additional info */}
+                                        {formData.role === 'teacher' && (
+                                            <div className="space-y-3 p-4 bg-red-50 dark:bg-red-950/20 rounded-lg border border-red-200 dark:border-red-800">
+                                                <div className="flex items-center gap-2">
+                                                    <Briefcase className="size-4 text-red-600 dark:text-red-400" />
+                                                    <Label htmlFor="expertise">Area of Expertise</Label>
+                                                </div>
+                                                <Input
+                                                    id="expertise"
+                                                    placeholder="e.g., Web Development, Data Science, Mathematics"
+                                                    value={formData.expertise}
+                                                    onChange={handleChange}
+                                                    className="bg-white dark:bg-zinc-800"
+                                                />
+                                            </div>
+                                        )}
+
+                                        {formData.role === 'student' && (
+                                            <div className="space-y-3 p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                                                <div className="flex items-center gap-2">
+                                                    <School className="size-4 text-blue-600 dark:text-blue-400" />
+                                                    <Label htmlFor="institution">Educational Institution (Optional)</Label>
+                                                </div>
+                                                <Input
+                                                    id="institution"
+                                                    placeholder="e.g., University Name"
+                                                    value={formData.institution}
+                                                    onChange={handleChange}
+                                                    className="bg-white dark:bg-zinc-800"
+                                                />
+                                            </div>
+                                        )}
+                                    </Motion.div>
+                                )}
+
+                                {step === 2 && (
+                                    <Motion.div
+                                        key="step2"
                                         variants={stepVariants}
                                         initial="hidden"
                                         animate="visible"
@@ -143,13 +299,13 @@ const Signup = () => {
                                             </div>
                                         </div>
                                         <div className="space-y-2">
-                                            <Label htmlFor="email">Institutional Email</Label>
+                                            <Label htmlFor="email">Email Address</Label>
                                             <div className="relative group">
                                                 <Mail className="absolute left-3 top-3 size-4 text-slate-400 group-focus-within:text-red-600 transition-colors" />
                                                 <Input
                                                     id="email"
                                                     type="email"
-                                                    placeholder="name@university.edu"
+                                                    placeholder={formData.role === 'student' ? "student@university.edu" : "teacher@institution.edu"}
                                                     className="pl-10 h-11"
                                                     required
                                                     value={formData.email}
@@ -182,9 +338,9 @@ const Signup = () => {
                                     </Motion.div>
                                 )}
 
-                                {step === 2 && (
+                                {step === 3 && (
                                     <Motion.div
-                                        key="step2"
+                                        key="step3"
                                         variants={stepVariants}
                                         initial="hidden"
                                         animate="visible"
@@ -243,44 +399,25 @@ const Signup = () => {
                                                 />
                                             </div>
                                         </div>
-                                        <div className="p-4 bg-red-600/5 rounded-md border border-red-600/10 flex gap-3">
-                                            <CheckCircle2 className="size-5 text-red-600 shrink-0 mt-0.5" />
-                                            <p className="text-xs text-slate-600 dark:text-slate-400">
-                                                Your data is protected under our institutional privacy policy and will only be used for academic purposes.
-                                            </p>
-                                        </div>
-                                    </Motion.div>
-                                )}
-
-                                {step === 3 && (
-                                    <Motion.div
-                                        key="step3"
-                                        variants={stepVariants}
-                                        initial="hidden"
-                                        animate="visible"
-                                        exit="exit"
-                                        className="space-y-4"
-                                    >
                                         <div className="space-y-2">
-                                            <Label>Your Role</Label>
-                                            <RoleSelector
-                                                selectedRole={formData.role}
-                                                onChange={handleRoleChange}
-                                            />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <Label htmlFor="address">Campus/Home Address</Label>
+                                            <Label htmlFor="address">{formData.role === 'student' ? "Campus/Home Address" : "Institution Address"}</Label>
                                             <div className="relative group">
                                                 <MapPin className="absolute left-3 top-3 size-4 text-slate-400 group-focus-within:text-red-600 transition-colors" />
                                                 <Input
                                                     id="address"
-                                                    placeholder="Dormitory, Building or Street"
+                                                    placeholder={formData.role === 'student' ? "Dormitory, Building or Street" : "Institution Building, Street"}
                                                     className="pl-10 h-11"
                                                     required
                                                     value={formData.address}
                                                     onChange={handleChange}
                                                 />
                                             </div>
+                                        </div>
+                                        <div className="p-4 bg-red-600/5 rounded-md border border-red-600/10 flex gap-3">
+                                            <CheckCircle2 className="size-5 text-red-600 shrink-0 mt-0.5" />
+                                            <p className="text-xs text-slate-600 dark:text-slate-400">
+                                                Your data is protected under our privacy policy and will only be used for educational purposes.
+                                            </p>
                                         </div>
                                     </Motion.div>
                                 )}
@@ -306,6 +443,7 @@ const Signup = () => {
                                         type="button"
                                         className="flex-1 h-12 bg-red-600 hover:bg-red-700 text-white font-bold transition-all hover:translate-x-1"
                                         onClick={nextStep}
+                                        disabled={step === 1 && !formData.role}
                                     >
                                         Continue <ChevronRight className="size-4 ml-2" />
                                     </Button>
@@ -318,9 +456,9 @@ const Signup = () => {
                                         {isSigningUp ? (
                                             <div className="flex items-center gap-2">
                                                 <div className="size-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                                Processing...
+                                                Creating Account...
                                             </div>
-                                        ) : "Register for Access"}
+                                        ) : formData.role === 'teacher' ? "Register as Teacher" : "Register as Student"}
                                     </Button>
                                 )}
                             </div>

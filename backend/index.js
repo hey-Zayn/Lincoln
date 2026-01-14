@@ -25,6 +25,9 @@ app.use('/api/users', require('./router/user.router'));
 app.use('/api/courses', require('./router/course.router'));
 app.use('/api/sections', require('./router/section.router'));
 app.use('/api/lectures', require('./router/lecture.router'));
+app.use('/api/classes', require('./router/class.router'));
+app.use('/api/departments', require('./router/department.router'));
+app.use('/api/timetable', require('./router/timetable.router'));
 
 
 app.get('/', (req, res) => {

@@ -105,6 +105,18 @@ const userSchema = new mongoose.Schema({
             ref: "User"
         }
     ],
+    courseProgress: [
+        {
+            courseId: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: "Course"
+            },
+            progress: {
+                type: Number,
+                default: 0
+            }
+        }
+    ],
 }, { timestamps: true });
 
 

@@ -38,11 +38,17 @@ import { toast } from 'sonner';
 const LecturesPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { getCourseById, currentCourse, isLoading } = useCourseStore();
+  const {
+    getCourseById,
+    currentCourse,
+    isLoading,
+    getCourseProgress,
+    updateLectureProgress,
+    courseProgress
+  } = useCourseStore();
   const [selectedLecture, setSelectedLecture] = useState(null);
   const [selectedSection, setSelectedSection] = useState(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const [progress, setProgress] = useState(35); // Mock progress
 
   useEffect(() => {
     getCourseById(id).then(course => {
@@ -62,7 +68,8 @@ const LecturesPage = () => {
         }
       }
     });
-  }, [id, getCourseById]);
+    getCourseProgress(id);
+  }, [id, getCourseById, getCourseProgress]);
 
   const handleLectureSelect = (lecture, section) => {
     setSelectedLecture(lecture);
@@ -72,9 +79,11 @@ const LecturesPage = () => {
     }
   };
 
-  const handleMarkComplete = () => {
-    toast.success("Lecture marked as completed");
-    // Here you would update progress in your backend
+  const handleMarkComplete = async () => {
+    if (selectedLecture) {
+      await updateLectureProgress(id, selectedLecture._id);
+      toast.success("Lecture marked as completed");
+    }
   };
 
   const calculateTotalDuration = (lectures) => {
@@ -82,9 +91,36 @@ const LecturesPage = () => {
     return (lectures?.length || 0) * 15; // 15 minutes per lecture
   };
 
-  const calculateCompletedLectures = () => {
-    // Mock calculation - in real app, get from user progress
-    return Math.floor((progress / 100) * getTotalLectures());
+  const getAllLectures = () => {
+    if (!currentCourse?.sections) return [];
+    return currentCourse.sections.flatMap(section => section.lectures || []);
+  };
+
+  const handleNextLecture = () => {
+    const allLectures = getAllLectures();
+    const currentIndex = allLectures.findIndex(l => l._id === selectedLecture?._id);
+    if (currentIndex < allLectures.length - 1) {
+      const nextLecture = allLectures[currentIndex + 1];
+      // Find the section for this lecture
+      const nextSection = currentCourse.sections.find(s =>
+        s.lectures?.some(l => l._id === nextLecture._id)
+      );
+      handleLectureSelect(nextLecture, nextSection);
+    } else {
+      toast.info("You've reached the end of the course!");
+    }
+  };
+
+  const handlePrevLecture = () => {
+    const allLectures = getAllLectures();
+    const currentIndex = allLectures.findIndex(l => l._id === selectedLecture?._id);
+    if (currentIndex > 0) {
+      const prevLecture = allLectures[currentIndex - 1];
+      const prevSection = currentCourse.sections.find(s =>
+        s.lectures?.some(l => l._id === prevLecture._id)
+      );
+      handleLectureSelect(prevLecture, prevSection);
+    }
   };
 
   const getTotalLectures = () => {
@@ -169,13 +205,13 @@ const LecturesPage = () => {
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
                   <span className="font-medium">Course Progress</span>
-                  <span className="font-semibold">{progress}%</span>
+                  <span className="font-semibold">{courseProgress?.progress || 0}%</span>
                 </div>
-                <Progress value={progress} className="h-2" />
+                <Progress value={courseProgress?.progress || 0} className="h-2" />
               </div>
               <div className="flex items-center justify-between text-sm text-muted-foreground">
-                <span>{calculateCompletedLectures()} of {getTotalLectures()} completed</span>
-                <span>{calculateTotalDuration()} min total</span>
+                <span>{courseProgress?.completedLectures?.length || 0} of {getTotalLectures()} completed</span>
+                <span>{calculateTotalDuration(currentCourse.lectures)} min total</span>
               </div>
             </div>
 
@@ -207,12 +243,18 @@ const LecturesPage = () => {
                           <div className="flex items-start gap-3 w-full">
                             <div className={`
                               flex-shrink-0 mt-0.5 size-6 rounded-full flex items-center justify-center text-xs
-                              ${selectedLecture?._id === lecture._id
-                                ? 'bg-primary text-primary-foreground'
-                                : 'bg-muted text-muted-foreground'
+                              ${courseProgress?.completedLectures?.includes(lecture._id)
+                                ? 'bg-green-500 text-white'
+                                : selectedLecture?._id === lecture._id
+                                  ? 'bg-primary text-primary-foreground'
+                                  : 'bg-muted text-muted-foreground'
                               }
                             `}>
-                              {lIndex + 1}
+                              {courseProgress?.completedLectures?.includes(lecture._id) ? (
+                                <CheckCircle2 className="h-4 w-4" />
+                              ) : (
+                                lIndex + 1
+                              )}
                             </div>
                             <div className="flex-1 text-left min-w-0 ">
                               <p className="font-medium text-sm truncate">{lecture.title}</p>
@@ -299,6 +341,7 @@ const LecturesPage = () => {
                     <video
                       src={selectedLecture.videoUrl}
                       controls
+                      onEnded={handleMarkComplete}
                       className="w-full h-full"
                     />
                   ) : (
@@ -314,9 +357,14 @@ const LecturesPage = () => {
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
-                      <Button onClick={handleMarkComplete} className="gap-2">
-                        <CheckCircle2 className="h-4 w-4" />
-                        Mark Complete
+                      <Button
+                        onClick={handleMarkComplete}
+                        className="gap-2"
+                        variant={courseProgress?.completedLectures?.includes(selectedLecture?._id) ? "outline" : "default"}
+                        disabled={courseProgress?.completedLectures?.includes(selectedLecture?._id)}
+                      >
+                        <CheckCircle2 className={`h-4 w-4 ${courseProgress?.completedLectures?.includes(selectedLecture?._id) ? "text-green-500" : ""}`} />
+                        {courseProgress?.completedLectures?.includes(selectedLecture?._id) ? "Completed" : "Mark Complete"}
                       </Button>
                       <Button variant="outline" size="icon">
                         <Bookmark className="h-4 w-4" />
@@ -466,14 +514,24 @@ const LecturesPage = () => {
 
               {/* Navigation Buttons */}
               <div className="flex items-center justify-between pt-6 border-t">
-                <Button variant="outline" className="gap-2">
+                <Button
+                  variant="outline"
+                  className="gap-2"
+                  onClick={handlePrevLecture}
+                  disabled={getAllLectures().findIndex(l => l._id === selectedLecture?._id) === 0}
+                >
                   <ArrowLeft className="h-4 w-4" />
                   Previous Lecture
                 </Button>
                 <div className="text-sm text-muted-foreground">
-                  Lecture {selectedSection?.lectures?.findIndex(l => l._id === selectedLecture._id) + 1} of {selectedSection?.lectures?.length}
+                  Lecture {getAllLectures().findIndex(l => l._id === selectedLecture?._id) + 1} of {getTotalLectures()}
                 </div>
-                <Button variant="outline" className="gap-2">
+                <Button
+                  variant="outline"
+                  className="gap-2"
+                  onClick={handleNextLecture}
+                  disabled={getAllLectures().findIndex(l => l._id === selectedLecture?._id) === getAllLectures().length - 1}
+                >
                   Next Lecture
                   <ArrowRight className="h-4 w-4" />
                 </Button>

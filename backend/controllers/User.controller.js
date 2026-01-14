@@ -17,8 +17,15 @@ const registerUser = async (req, res) => {
             });
         }
 
-        const { firstName, lastName, userName, email, phone, nationalID, address, password, role } = req.body;
+        const { firstName, lastName, userName, email, phone, nationalID, address, password, role, profilePicture, bio } = req.body;
 
+        let profilePictureUrl = "";
+        if (profilePicture && profilePicture.startsWith("data:image")) {
+            const uploadResponse = await cloudinary.uploader.upload(profilePicture);
+            profilePictureUrl = uploadResponse.secure_url;
+        } else if (profilePicture) {
+            profilePictureUrl = profilePicture;
+        }
 
         const emailExist = await User.findOne({ email });
 
@@ -67,6 +74,8 @@ const registerUser = async (req, res) => {
             address,
             password,
             role: role || "student", // Ensure default role if not provided
+            profilePicture: profilePictureUrl,
+            bio: bio || "",
             verificationCode,
             verificationCodeExpires
         });
@@ -186,6 +195,52 @@ const getUser = async (req, res) => {
         })
     }
 };
+
+
+
+const getAllAdminUsers = async (req, res) => {
+    try {
+        const users = await User.find({
+            role: { $in: ["admin", "teacher", "management"] },
+            _id: { $ne: req.user._id }
+        });
+        return res.status(200).json({
+            success: true,
+            message: "All admin users fetched successfully",
+            users
+        })
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({
+            success: false,
+            message: "Something went wrong",
+            error: error.message
+        })
+    }
+}
+
+const getAllManagementUsers = async (req, res) => {
+    try {
+        const users = await User.find({
+            role: { $in: ["management", "teacher", "parent", "student"] },
+            _id: { $ne: req.user._id }
+        });
+        return res.status(200).json({
+            success: true,
+            message: "All management users fetched successfully",
+            users
+        })
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({
+            success: false,
+            message: "Something went wrong",
+            error: error.message
+        })
+    }
+}
+
+
 
 
 const verifyUser = async (req, res) => {
@@ -420,5 +475,7 @@ module.exports = {
     forgotPassword,
     resetPassword,
     updatePassword,
-    updateProfileUser
+    updateProfileUser,
+    getAllManagementUsers,
+    getAllAdminUsers,
 }

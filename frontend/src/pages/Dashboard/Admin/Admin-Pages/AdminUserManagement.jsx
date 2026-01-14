@@ -1,5 +1,5 @@
-import React from 'react';
-import { Search, MoreVertical, Edit, Trash2, Shield, Mail, Phone, Calendar } from 'lucide-react';
+import React, { useEffect } from 'react';
+import { Search, MoreVertical, Edit, Trash2, Shield, Mail, Phone, Calendar, User } from 'lucide-react';
 import { Button } from '../../../../components/ui/button';
 import {
   DropdownMenu,
@@ -7,16 +7,22 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "../../../../components/ui/dropdown-menu";
+import { useAuthStore } from '../../../../store/useAuthStore';
+import { Link } from 'react-router-dom';
 
 const AdminUserManagement = () => {
-  // Simulated user data
-  const users = [
-    { id: 1, name: 'Dr. Sarah Wilson', email: 'sarah.w@lincoln.edu', role: 'Teacher', status: 'Active', phone: '+1 (555) 123-4567', joinDate: '2023-08-15', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&auto=format&fit=crop&q=60' },
-    { id: 2, name: 'James Anderson', email: 'j.anderson@student.lincoln.edu', role: 'Student', status: 'Active', phone: '+1 (555) 987-6543', joinDate: '2023-09-01', avatar: 'https://images.unsplash.com/photo-1599566150163-29194dcaad36?w=100&auto=format&fit=crop&q=60' },
-    { id: 3, name: 'Emily Chen', email: 'emily.chen@lincoln.edu', role: 'Management', status: 'Leave', phone: '+1 (555) 456-7890', joinDate: '2022-03-10', avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=100&auto=format&fit=crop&q=60' },
-    { id: 4, name: 'Michael Brown', email: 'm.brown@lincoln.edu', role: 'Teacher', status: 'Active', phone: '+1 (555) 234-5678', joinDate: '2023-01-20', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=60' },
-    { id: 5, name: 'Lisa Taylor', email: 'lisa.t@student.lincoln.edu', role: 'Student', status: 'Inactive', phone: '+1 (555) 876-5432', joinDate: '2023-09-05', avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&auto=format&fit=crop&q=60' },
-  ];
+  const { getAllAdminUsers, adminUser, isLoading } = useAuthStore()
+
+  useEffect(() => {
+    getAllAdminUsers()
+  }, [])
+
+  if (isLoading) {
+    return <div>Loading...</div>
+  }
+  // console.log(adminUser)
+
+  const users = adminUser;
 
   const getRoleColor = (role) => {
     switch (role) {
@@ -37,12 +43,12 @@ const AdminUserManagement = () => {
           </h1>
           <p className="text-slate-500 dark:text-zinc-400 font-medium">Manage personnel access and student records.</p>
         </div>
-        
+
         <div className="flex items-center gap-3 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 p-1 rounded-md shadow-sm">
           <Search className="size-4 ml-3 text-slate-400" />
-          <input 
-            type="text" 
-            placeholder="Search users..." 
+          <input
+            type="text"
+            placeholder="Search users..."
             className="bg-transparent border-none focus:outline-none text-sm font-medium text-slate-700 dark:text-zinc-200 w-64 p-2 pl-1"
           />
         </div>
@@ -65,10 +71,10 @@ const AdminUserManagement = () => {
                 <tr key={user.id} className="group hover:bg-slate-50/50 dark:hover:bg-zinc-800/30 transition-colors">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-4">
-                      <img src={user.avatar} alt={user.name} className="size-10 rounded-full object-cover border-2 border-slate-100 dark:border-zinc-800 group-hover:border-red-500/50 transition-colors" />
+                      <img src={user.profilePicture} alt={user.name} className="size-10 rounded-full object-cover border-2 border-slate-100 dark:border-zinc-800 group-hover:border-red-500/50 transition-colors" />
                       <div>
-                        <p className="font-bold text-slate-900 dark:text-zinc-100 text-sm">{user.name}</p>
-                        <p className="text-xs text-slate-400 font-mono">ID: #{1000 + user.id}</p>
+                        <p className="font-bold text-slate-900 dark:text-zinc-100 text-sm">{user.firstName + " " + user.lastName}</p>
+                        <p className="text-xs text-slate-400 font-mono">{user.isVerified ? "Verified" : "Not Verified"}</p>
                       </div>
                     </div>
                   </td>
@@ -91,7 +97,7 @@ const AdminUserManagement = () => {
                     <div className="flex items-center gap-2">
                       <span className={`size-2 rounded-full ${user.status === 'Active' ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`}></span>
                       <span className={`text-xs font-bold ${user.status === 'Active' ? 'text-emerald-600' : 'text-slate-500'}`}>
-                        {user.status}
+                        {user.status || "Inactive"}
                       </span>
                     </div>
                   </td>
@@ -103,6 +109,11 @@ const AdminUserManagement = () => {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="bg-zinc-900 border-zinc-800">
+                        <Link to={`/admin/user/${user._id}`}>
+                          <DropdownMenuItem className="text-zinc-400 hover:text-white focus:text-white hover:bg-zinc-800 focus:bg-zinc-800 cursor-pointer">
+                            <User className="mr-2 h-4 w-4" /> View Profile
+                          </DropdownMenuItem>
+                        </Link>
                         <DropdownMenuItem className="text-zinc-400 hover:text-white focus:text-white hover:bg-zinc-800 focus:bg-zinc-800 cursor-pointer">
                           <Edit className="mr-2 h-4 w-4" /> Edit Details
                         </DropdownMenuItem>
