@@ -20,11 +20,12 @@ const TeacherTopbar = () => {
     const { logout, authUser } = useAuthStore();
     const { theme, setTheme } = useThemeStore();
     return (
-        <div className='sticky top-0 z-30 w-full h-16 flex items-center justify-between px-6 border-b border-zinc-900/50 bg-zinc-950/50 backdrop-blur-md'>
+        <div className='sticky top-0 z-30 w-full h-16 flex items-center justify-between px-6 border-b border-zinc-900/50 dark:border-zinc-800/50 dark:bg-zinc-950/50 
+        bg-zinc-200/50 backdrop-blur-md'>
             <div className='flex items-center gap-3'>
                 <SidebarTrigger className="text-zinc-400 hover:text-white" />
                 <Link to="/">
-                    <Button variant="ghost" className="text-zinc-400 hover:text-white gap-2 h-9 px-3 rounded-md hover:bg-white/5">
+                    <Button variant="outline" className="">
                         <Home className="size-4" />
                         <span className="text-sm font-medium">LMS Home</span>
                     </Button>

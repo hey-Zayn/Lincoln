@@ -19,6 +19,13 @@ const MaterialSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: "Course",
         required: true
+    },
+    lecture: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Lecture"
+    },
+    sectionId: {
+        type: mongoose.Schema.Types.ObjectId,
     }
 }, { timestamps: true });
 

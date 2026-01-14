@@ -12,6 +12,26 @@ const lectureProgressSchema = new mongoose.Schema({
     }
 });
 
+const quizProgressSchema = new mongoose.Schema({
+    quizId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Quiz",
+        required: true
+    },
+    passed: {
+        type: Boolean,
+        default: false
+    },
+    score: {
+        type: Number,
+        default: 0
+    },
+    attempts: {
+        type: Number,
+        default: 0
+    }
+});
+
 const courseProgressSchema = new mongoose.Schema({
     userId: {
         type: mongoose.Schema.Types.ObjectId,
@@ -27,7 +47,8 @@ const courseProgressSchema = new mongoose.Schema({
         type: Boolean,
         default: false
     },
-    lectureProgress: [lectureProgressSchema]
+    lectureProgress: [lectureProgressSchema],
+    quizProgress: [quizProgressSchema]
 }, { timestamps: true });
 
 courseProgressSchema.index({ userId: 1, courseId: 1 }, { unique: true });
