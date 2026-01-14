@@ -67,7 +67,9 @@ app.use((err, req, res, next) => {
 });
 
 // Database - connection
-connectionDB();
+connectionDB().catch(err => {
+    console.error("FAILED TO INITIALIZE DATABASE:", err.message);
+});
 
 if (process.env.NODE_ENV !== 'production') {
     app.listen(port, () => {
